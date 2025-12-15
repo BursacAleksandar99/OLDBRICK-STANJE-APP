@@ -1,0 +1,6 @@
+@OLDBRICK_STANJE_ARTIKALA_APP_HostAddress = http://localhost:5113
+
+GET {{OLDBRICK_STANJE_ARTIKALA_APP_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
