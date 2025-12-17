@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.User;
 using Microsoft.OpenApi.Models;
+using OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP
 {
@@ -82,6 +83,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
             builder.Services.AddScoped<IPasswordService, PasswordService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IBeerService, BeerService>();
 
             builder.Services.AddAuthentication(options =>
             {

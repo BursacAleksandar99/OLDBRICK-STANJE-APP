@@ -10,6 +10,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
 
         public DbSet<Users> Users => Set<Users>();
 
+        public DbSet<Beer> Beers => Set<Beer>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Users>(e =>
@@ -24,6 +26,15 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
                 e.Property(x => x.Role).HasColumnName("role");
                 e.Property(x => x.IsActive).HasColumnName("is_active");
                 e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            });
+
+            modelBuilder.Entity<Beer>(e =>
+            {
+                e.ToTable("TAB1");
+                e.Property(e => e.Id).HasColumnName("id");
+                e.Property(e => e.CreatedAt).HasColumnName("created_at");
+                e.Property(e => e.NazivPiva).HasColumnName("naziv_piva");
+                e.Property(e => e.TipMerenja).HasColumnName("tip_merenja");
             });
         }
     }
