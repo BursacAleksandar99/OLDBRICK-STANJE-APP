@@ -12,6 +12,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
 
         public DbSet<Beer> Beers => Set<Beer>();
 
+        public DbSet<DailyReport> DailyReports => Set<DailyReport>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Users>(e =>
@@ -32,9 +34,24 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
             {
                 e.ToTable("TAB1");
                 e.Property(e => e.Id).HasColumnName("id");
-                e.Property(e => e.CreatedAt).HasColumnName("created_at");
+                e.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()")
+                .ValueGeneratedOnAdd();
                 e.Property(e => e.NazivPiva).HasColumnName("naziv_piva");
                 e.Property(e => e.TipMerenja).HasColumnName("tip_merenja");
+            });
+
+            modelBuilder.Entity<DailyReport>(e =>
+            {
+                e.ToTable("TAB2");
+
+                e.HasKey(e => e.IdNaloga);
+
+                e.Property(e => e.IdNaloga).HasColumnName("id_naloga");
+                e.Property(e => e.CreatedAt).HasColumnName("created_at")
+                .HasDefaultValueSql("now()")
+                .ValueGeneratedOnAdd();
+                e.Property(e => e.Datum).HasColumnName("datum");
+                e.Property(e => e.Prosuto).HasColumnName("prosuto");
             });
         }
     }

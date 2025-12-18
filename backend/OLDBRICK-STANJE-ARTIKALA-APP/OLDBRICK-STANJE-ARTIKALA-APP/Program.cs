@@ -9,6 +9,7 @@ using System.Text;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.User;
 using Microsoft.OpenApi.Models;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices;
+using OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP
 {
@@ -84,6 +85,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IBeerService, BeerService>();
+            builder.Services.AddScoped<IDailyReportService, DailyReportService>();
 
             builder.Services.AddAuthentication(options =>
             {
