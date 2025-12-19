@@ -57,6 +57,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet("{idNaloga:int}/state")]
+        public async Task<ActionResult<ProsutoResultDto>> GetStates(int idNaloga)
+        {
+            var result = await _prosutoService.GetAllStatesByIdNaloga(idNaloga);
+            return Ok(result);
+        }
     }
 
 }

@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OLDBRICK_STANJE_ARTIKALA_APP.Data;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.Beers;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices;
+using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
 {
@@ -10,6 +12,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
     public class BeersController : ControllerBase
     {
         private readonly IBeerService _beerService;
+        
 
         public BeersController(IBeerService beerService)
         {
@@ -40,6 +43,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             var beer = await _beerService.GetByIdAsync(id);
             if (beer == null) return NotFound();
             return Ok(beer);
+        }
+
+        [HttpGet("allArticals")]
+        public async Task<IActionResult> GetAll()
+        {
+            var allBeers = await _beerService.GetAllBeersAsync();
+            return Ok(allBeers);
         }
     }
 }

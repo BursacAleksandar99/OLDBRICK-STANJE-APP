@@ -34,6 +34,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             var result = new ProsutoResultDto { IdNaloga = idNaloga };
 
             float prosutoSum = 0;
+            float totalvagaPotrosnja = 0;
+            float totalposPotrosnja = 0;
 
             foreach (var s in states)
             {
@@ -61,9 +63,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
                 var odstupanje = posPotrosnja - vagaPotrosnja;
 
+                totalvagaPotrosnja += vagaPotrosnja;
+                totalposPotrosnja += posPotrosnja;
+
                 // prosuto = sabiramo samo negativna odstupanja (gubitak)
                 if (odstupanje < 0)
                     prosutoSum += Math.Abs(odstupanje);
+                
 
                 result.Items.Add(new BeerCalcResultDto
                 {
@@ -77,16 +83,26 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     PosEnd = posEnd,
                     PosPotrosnja = posPotrosnja,
 
-                    Odstupanje = odstupanje
+                    Odstupanje = odstupanje,
                 });
             }
 
             // 4) Upis u TAB2
-            report.Prosuto = MathF.Round(prosutoSum, 2);
+            report.TotalProsuto = MathF.Round(prosutoSum, 2);
+            report.TotalPotrosenoVaga = MathF.Round(totalvagaPotrosnja, 2);
+            report.TotalPotrosenoProgram = totalposPotrosnja;
             await _context.SaveChangesAsync();
 
-            result.Prosuto = MathF.Round(prosutoSum, 2);
+            result.TotalProsuto = MathF.Round(prosutoSum, 2);
             return result;
+        }
+
+        public async Task<ProsutoResultDto> GetAllStatesByIdNaloga(int idNaloga)
+        {
+            var AllStatesByIdNaloga = await _context.DailyBeerStates
+                .Where(s => s.IdNaloga == idNaloga)
+                .ToListAsync();
+            throw new NotImplementedException();
         }
 
     }

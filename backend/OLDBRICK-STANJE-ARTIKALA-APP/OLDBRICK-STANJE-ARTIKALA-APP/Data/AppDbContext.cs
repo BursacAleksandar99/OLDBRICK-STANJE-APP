@@ -53,7 +53,9 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
                 .HasDefaultValueSql("now()")
                 .ValueGeneratedOnAdd();
                 e.Property(e => e.Datum).HasColumnName("datum");
-                e.Property(e => e.Prosuto).HasColumnName("prosuto");
+                e.Property(e => e.TotalProsuto).HasColumnName("total_prosuto");
+                e.Property(e => e.TotalPotrosenoVaga).HasColumnName("total_potroseno_na_vagi");
+                e.Property(e => e.TotalPotrosenoProgram).HasColumnName("total_potroseno_u_programu");
             });
 
             modelBuilder.Entity<DailyBeerState>(e =>

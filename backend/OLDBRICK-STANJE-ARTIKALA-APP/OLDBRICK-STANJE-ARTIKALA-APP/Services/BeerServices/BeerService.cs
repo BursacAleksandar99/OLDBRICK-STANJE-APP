@@ -1,4 +1,5 @@
-﻿using OLDBRICK_STANJE_ARTIKALA_APP.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using OLDBRICK_STANJE_ARTIKALA_APP.Data;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.Beers;
 using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
 
@@ -37,6 +38,11 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         public async Task<Beer?> GetByIdAsync(int id)
         {
             return await _context.Beers.FindAsync(id);
+        }
+
+        public async Task<List<Beer>> GetAllBeersAsync()
+        {
+            return await _context.Beers.OrderBy(b => b.NazivPiva).ToListAsync();
         }
     }
 }

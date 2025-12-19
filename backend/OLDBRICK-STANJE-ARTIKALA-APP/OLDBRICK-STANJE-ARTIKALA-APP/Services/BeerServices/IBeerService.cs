@@ -8,5 +8,6 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         Task<Beer> CreateAsync(CreateBeerRequest request);
 
         Task<Beer> GetByIdAsync(int id);
+        Task<List<Beer>> GetAllBeersAsync();
     }
 }

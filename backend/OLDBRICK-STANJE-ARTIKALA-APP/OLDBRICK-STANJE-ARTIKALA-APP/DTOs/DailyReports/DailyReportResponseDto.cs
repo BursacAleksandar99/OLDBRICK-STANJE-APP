@@ -4,6 +4,6 @@
     {
         public int IdNaloga { get; set; }
         public DateOnly Datum { get; set; }
-        public float Prosuto { get; set; }
+        public float TotalProsuto { get; set; }
     }
 }

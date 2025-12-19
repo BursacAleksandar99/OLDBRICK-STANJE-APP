@@ -13,5 +13,6 @@
         public float PosPotrosnja { get; set; }
 
         public float Odstupanje { get; set; }
+
     }
 }

@@ -26,13 +26,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
                 {
                     IdNaloga = existing.IdNaloga,
                     Datum = existing.Datum,
-                    Prosuto = existing.Prosuto,
+                    TotalProsuto = existing.TotalProsuto,
                 };
             }
             var dailyReport = new DailyReport
             {
                 Datum = datum,
-                Prosuto = 0 
+                TotalProsuto = 0 
             };
 
             _context.DailyReports.Add(dailyReport);
@@ -42,7 +42,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
             {
                 IdNaloga = dailyReport.IdNaloga,
                 Datum = dailyReport.Datum,
-                Prosuto = dailyReport.Prosuto
+                TotalProsuto = dailyReport.TotalProsuto
             };
         }
     }
