@@ -5,7 +5,25 @@ async function getReportStatesById(idNaloga){
     return data;
 }
 
+async function getOrCreateReportByDate(datum){
+    const {data} = await httpClient.post("api/dailyreports/for-date", {datum});
+    return data;
+}
+
+async function putMeasuredProsuto(idNaloga, prosutoKanta){
+    const {data} = (await httpClient.put(`api/dailyreports/${idNaloga}/prosuto-kanta`, {prosutoKanta})).data;
+    return data;
+}
+
+async function calculateProsutoRazlika(idNaloga){
+    const {data} = await httpClient.post(`api/dailyreports/${idNaloga}/calculate-prosuto-razlika`);
+    return data;
+}
+
 
 export {
-    getReportStatesById
+    getReportStatesById,
+    getOrCreateReportByDate,
+    putMeasuredProsuto,
+    calculateProsutoRazlika
 };

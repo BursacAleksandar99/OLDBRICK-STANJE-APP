@@ -1,12 +1,28 @@
 import { useEffect, useState } from "react";
-import { getReportStatesById } from "../api/helpers";
+import { getReportStatesById, getOrCreateReportByDate } from "../api/helpers";
 
-function DailyReportPreview() {
+function DailyReportPreview({ datum, onidNalogaResolved }) {
   const [data, setData] = useState(null);
+  const [idNaloga, setIdNaloga] = useState(null);
 
   useEffect(() => {
-    getReportStatesById(8).then(setData).catch(console.error);
-  }, []);
+    if (!datum) return;
+    getOrCreateReportByDate(datum)
+      .then((res) => {
+        setIdNaloga(res.idNaloga);
+        onidNalogaResolved?.(res.idNaloga);
+      })
+
+      .catch(console.error);
+
+    console.log("DATUM:", datum);
+  }, [datum]);
+
+  useEffect(() => {
+    if (!idNaloga) return;
+
+    getReportStatesById(idNaloga).then(setData).catch(console.error);
+  }, [idNaloga]);
 
   if (!data) {
     return <div>Loading...</div>;
@@ -16,7 +32,27 @@ function DailyReportPreview() {
     <div className="mt-6">
       <h3 className="text-center text-sm text-gray-300 mb-3">
         Total prosuto:{" "}
-        <span className="font-semibold">{data.totalProsuto}</span>
+        <span
+          className={`font-semibold ${
+            data.totalProsuto < 0 ? "text-green-400" : "text-red-400"
+          }`}
+        >
+          {data.totalProsuto === 0
+            ? data.totalProsuto
+            : `-${data.totalProsuto}`}
+        </span>
+      </h3>
+      <h3 className="text-center text-sm text-gray-300 mb-3">
+        Izmereno prosuto:{" "}
+        <span
+          className={`font-semibold ${
+            data.prosutoKanta < 0 ? "text-green-400" : "text-red-400"
+          }`}
+        >
+          {data.prosutoKanta === 0
+            ? data.prosutoKanta
+            : `-${data.prosutoKanta}`}
+        </span>
       </h3>
 
       {/* ===== MOBILE (kartice) ===== */}
@@ -31,13 +67,13 @@ function DailyReportPreview() {
               <div
                 className={`text-sm font-semibold ${
                   x.odstupanje === 0
-                    ? "text-gray-400"
-                    : x.odstupanje > 0
-                    ? "text-yellow-400"
+                    ? "text-green-400"
+                    : x.odstupanje < 0
+                    ? "text-orange-400"
                     : "text-red-400"
                 }`}
               >
-                Odst: {x.odstupanje}
+                Odst: {x.odstupanje === 0 ? x.odstupanje : `-${x.odstupanje}`}
               </div>
             </div>
 
