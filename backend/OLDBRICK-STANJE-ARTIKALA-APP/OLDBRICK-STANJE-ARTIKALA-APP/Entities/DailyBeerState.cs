@@ -10,5 +10,6 @@
 
         public float Izmereno { get; set; }          // izmereno (VAGA_END)
         public float StanjeUProgramu { get; set; }   // stanje_u_programu (POS_END)
+        
     }
 }

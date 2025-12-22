@@ -1,3 +1,5 @@
+import DailyReportPreview from "../components/DailyReportPreview";
+
 function DailyReports() {
   return (
     <div className="pt-20 px-4">
@@ -5,6 +7,7 @@ function DailyReports() {
       <p className="text-white/70 mt-2">
         Ovde ide kalendar + unos stanja (sledeći korak).
       </p>
+      <DailyReportPreview />
     </div>
   );
 }

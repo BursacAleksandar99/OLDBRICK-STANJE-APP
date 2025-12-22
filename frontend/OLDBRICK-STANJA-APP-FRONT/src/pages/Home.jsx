@@ -24,7 +24,7 @@ function Home() {
 
         <button
           type="button"
-          onClick={() => navigate("/pregled/nedelja")}
+          onClick={() => navigate("/weekly-reports")}
           className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-white text-[#2A2F3A] border border-black/10 hover:bg-black/5 transition"
         >
           POGLEDAJ PRETHODNU NEDELJU

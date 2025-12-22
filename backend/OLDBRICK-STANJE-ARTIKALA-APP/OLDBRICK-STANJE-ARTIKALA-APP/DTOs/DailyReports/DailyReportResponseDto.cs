@@ -5,5 +5,7 @@
         public int IdNaloga { get; set; }
         public DateOnly Datum { get; set; }
         public float TotalProsuto { get; set; }
+        public float IzmerenoProsutoVaga { get; set; }
+        public float IzracunataRazlikaProsutog {  get; set; }
     }
 }

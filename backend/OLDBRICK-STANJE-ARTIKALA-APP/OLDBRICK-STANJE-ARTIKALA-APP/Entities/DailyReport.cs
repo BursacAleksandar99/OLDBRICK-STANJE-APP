@@ -8,5 +8,7 @@
         public float TotalProsuto { get; set; }
         public float TotalPotrosenoVaga { get; set; }
         public float TotalPotrosenoProgram { get; set; }
+        public float IzmerenoProsuto { get; set; }
+        public float ProsutoRazlika { get; set;}
     }
 }

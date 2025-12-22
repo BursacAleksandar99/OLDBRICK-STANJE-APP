@@ -14,7 +14,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             _context = context;
         }
 
-        public async Task<List<DailyBeerState>> UpsertForReportAsync(int idNaloga, List<UpsertDailyBeerStateDto> items)
+        public async Task<List<DailyBeerState>>UpsertForReportAsync(int idNaloga, List<UpsertDailyBeerStateDto> items)
         {
             if(items == null || items.Count == 0) 
                 throw new ArgumentException("Lista svaki je prazna.");
@@ -30,6 +30,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 if (dto.BeerId <= 0) throw new ArgumentException("BeerId nije validan.");
                 if (dto.Izmereno < 0) throw new ArgumentException("Izmereno ne može biti negativno.");
                 if (dto.StanjeUProgramu < 0) throw new ArgumentException("Stanje u programu ne može biti negativno.");
+                
 
                 var existing = await _context.DailyBeerStates
                     .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga && x.IdPiva == dto.BeerId);

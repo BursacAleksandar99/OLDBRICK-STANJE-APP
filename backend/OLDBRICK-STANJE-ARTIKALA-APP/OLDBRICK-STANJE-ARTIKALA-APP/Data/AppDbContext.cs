@@ -56,6 +56,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
                 e.Property(e => e.TotalProsuto).HasColumnName("total_prosuto");
                 e.Property(e => e.TotalPotrosenoVaga).HasColumnName("total_potroseno_na_vagi");
                 e.Property(e => e.TotalPotrosenoProgram).HasColumnName("total_potroseno_u_programu");
+                e.Property(e => e.IzmerenoProsuto).HasColumnName("vaga_izmereno_prosuto");
+                e.Property(e => e.ProsutoRazlika).HasColumnName("prosuto_razlika");
             });
 
             modelBuilder.Entity<DailyBeerState>(e =>

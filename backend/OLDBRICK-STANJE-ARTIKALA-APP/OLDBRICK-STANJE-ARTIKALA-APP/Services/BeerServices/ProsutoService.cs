@@ -98,6 +98,26 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             return result;
         }
 
+        public async Task UpdateProsutoKantaAsync(int idNaloga, float prosutoKanta)
+        {
+            var report = await _context.DailyReports
+                        .AsTracking()
+                        .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
+            if (report == null)
+            {
+                throw new ArgumentException("Dnevni nalog ne postoji.");
+            }
+            if (prosutoKanta < 0)
+            {
+                throw new ArgumentException("Prosuto iz kante ne može biti negativno.");
+            }
+                
+
+            report.IzmerenoProsuto = MathF.Round(prosutoKanta, 2);
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<ProsutoResultDto> GetAllStatesByIdNaloga(int idNaloga)
         {
             var currentStates = await _context.DailyBeerStates
@@ -174,6 +194,34 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 TotalProsuto = TotalProsuto,
                 Items = items
             };
+        }
+
+        public async Task<float> CalculateAndSaveProsutoRazlikaAsync(int idNaloga)
+        {
+            var report = await _context.DailyReports.FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
+
+            if(report == null)
+            {
+                throw new ArgumentException("Dnevni nalog ne postoji.");
+            }
+            if(report.IzmerenoProsuto <= 0)
+            {
+                throw new ArgumentException("Izmereno prosuto (kanta) nije uneto.");
+            }
+            if(report.TotalProsuto < 0)
+            {
+                throw new ArgumentException("Pokrenite prvo calculate_prosuto!");
+            }
+
+            var totalProsuto = MathF.Round(report.TotalProsuto, 2);
+            var izmerenoProsuto = MathF.Round(report.IzmerenoProsuto, 2);
+
+            var razlika = MathF.Round(izmerenoProsuto -  totalProsuto, 2);
+
+            report.ProsutoRazlika = razlika;
+            await _context.SaveChangesAsync();
+
+            return razlika;
         }
 
     }

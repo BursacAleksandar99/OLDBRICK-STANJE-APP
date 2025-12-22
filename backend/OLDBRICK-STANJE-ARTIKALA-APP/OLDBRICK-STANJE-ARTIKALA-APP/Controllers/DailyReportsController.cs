@@ -57,12 +57,29 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPut("{idNaloga}/prosuto-kanta")]
+        public async Task<IActionResult> UpdateProsutoKanta(int idNaloga, [FromBody] ProsutoKantaDto dto)
+        {
+            await _prosutoService.UpdateProsutoKantaAsync(idNaloga, dto.ProsutoKanta);
+            return NoContent();
+        }
 
         [HttpGet("{idNaloga:int}/state")]
         public async Task<ActionResult<ProsutoResultDto>> GetStates(int idNaloga)
         {
             var result = await _prosutoService.GetAllStatesByIdNaloga(idNaloga);
             return Ok(result);
+        }
+
+        [HttpPost("{idNaloga}/calculate-prosuto-razlika")]
+        public async Task<IActionResult> CalculateProsutoRazlika(int idNaloga)
+        {
+            var razlika = await _prosutoService.CalculateAndSaveProsutoRazlikaAsync(idNaloga);
+            return Ok(new
+            {
+                idNaloga,
+                prosutoRazlika = razlika
+            });
         }
     }
 

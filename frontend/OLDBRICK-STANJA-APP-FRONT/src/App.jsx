@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar.jsx";
 import DailyReportPreview from "./components/DailyReportPreview.jsx";
 import DailyReports from "./pages/DailyReports.jsx";
 import DayBeforeReports from "./pages/DayBeforeReports.jsx";
+import LastWeekReports from "./pages/LastWeekReports.jsx";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         />
         <Route path="/daybefore-report" element={<DayBeforeReports />} />
         <Route path="/daily-reports" element={<DailyReports />} />
+        <Route path="/weekly-reports" element={<LastWeekReports />} />
       </Routes>
     </div>
   );
