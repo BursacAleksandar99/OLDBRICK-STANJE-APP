@@ -96,6 +96,12 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
                 prosutoRazlika = razlika
             });
         }
+        [HttpGet("dates")]
+        public async Task<IActionResult> GetAllReportDates()
+        {
+            var dates = await _dailyReport.GetAllDatesNalogaAsync();
+            return Ok(dates);
+        }
     }
 
 }

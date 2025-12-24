@@ -70,5 +70,15 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
                 IzmerenoProsutoVaga = report.IzmerenoProsuto
             };
         }
+        public async Task<List<DailyReportDateDto>> GetAllDatesNalogaAsync()
+        {
+            var result = await _context.DailyReports.Select(x => new DailyReportDateDto
+            {
+                IdNaloga = x.IdNaloga,
+                Datum = x.Datum
+            }).ToListAsync();
+
+            return result;
+        }
     }
 }
