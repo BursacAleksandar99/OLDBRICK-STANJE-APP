@@ -10,13 +10,39 @@ function DailyReports() {
   const [idNaloga, setIdNaloga] = useState(null);
   const [statusMessageForNalog, setStatusMessageForNalog] = useState("");
 
+  async function handleGetOrCreateNalog(datum) {
+    try {
+      const existing = await getNalogByDate(datum);
+
+      if (existing) {
+        setStatusMessageForNalog("Nalog za izabrani datum već postoji.");
+        setTimeout(() => setStatusMessageForNalog(""), 1000);
+        return;
+      }
+
+      const res = await createNalogByDate(datum);
+      setIdNaloga(res.idNaloga);
+
+      setStatusMessageForNalog(`Nalog za datum ${datum} je uspešno kreiran.`);
+      setTimeout(() => setStatusMessageForNalog(""), 1000);
+    } catch (err) {
+      console.error(err);
+      setStatusMessageForNalog("Došlo je do greške prilikom kreiranja naloga.");
+      setTimeout(() => setStatusMessageForNalog(""), 1000);
+    }
+  }
+  async function handleCalendarChange(datum) {
+    setDatum(datum);
+    handleGetOrCreateNalog(datum);
+  }
+
   return (
     <div className="pt-20 px-4">
       <h1 className="text-xl font-semibold text-white">Unesi stanje</h1>
       <div className="pt-20 px-4">
         <div className="mt-4">
-          <Calendar value={datum} onChange={setDatum} />
-          <button
+          <Calendar value={datum} onChange={handleCalendarChange} />
+          {/* <button
             type="button"
             disabled={!datum}
             onClick={async () => {
@@ -51,7 +77,8 @@ function DailyReports() {
             ].join(" ")}
           >
             Kreiraj nalog za izabrani datum
-          </button>
+          </button> */}{" "}
+          {/*We don't need button anymore, but for future it can stay in comment xD  */}
           {statusMessageForNalog && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
               {/* BACKDROP */}
@@ -70,12 +97,12 @@ function DailyReports() {
             </div>
           )}
         </div>
-        <SaveDailyReportStates idNaloga={idNaloga} />
         <ProsutoKantaForm idNaloga={idNaloga} />
+        <SaveDailyReportStates idNaloga={idNaloga} />
 
-        <p className="mt-3 text-center text-white/60 text-sm">
+        {/* <p className="mt-3 text-center text-white/60 text-sm">
           Izabrani datum: <span className="text-white">{datum || "-"}</span>
-        </p>
+        </p> */}
       </div>
       <DailyReportPreview datum={datum} onidNalogaResolved={setIdNaloga} />
     </div>
