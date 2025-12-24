@@ -51,6 +51,10 @@ async function getAllReportDates(){
     const {data} = await httpClient.get("api/dailyreports/dates");
     return data;
 }
+async function getDailyReportJustByDate(date){
+    const {data} = await httpClient.get(`/api/dailyreports/by-date?date=${date}`);
+    return data; // data is just idNaloga & datum! 
+}
 
 
 export {
@@ -62,5 +66,6 @@ export {
     postDailyReportStates,
     getAllArticles,
     calculateProsutoOnly,
-    getAllReportDates
+    getAllReportDates,
+    getDailyReportJustByDate
 };

@@ -80,5 +80,17 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
 
             return result;
         }
+
+        public async Task<DailyReportDateDto?> GetTodayAsync(DateOnly date)
+        {
+            return await _context.DailyReports
+                .Where(x => x.Datum == date)
+                .Select(x => new DailyReportDateDto
+                {
+                    IdNaloga = x.IdNaloga,
+                    Datum = x.Datum
+                })
+                .FirstOrDefaultAsync();
+        }
     }
 }

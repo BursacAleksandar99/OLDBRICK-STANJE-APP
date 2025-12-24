@@ -102,6 +102,17 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             var dates = await _dailyReport.GetAllDatesNalogaAsync();
             return Ok(dates);
         }
+
+        [HttpGet("by-date")]
+        public async Task<IActionResult> GetToday([FromQuery] DateOnly date)
+        {
+            var result = await _dailyReport.GetTodayAsync(date);
+
+            if (result == null)
+                return NotFound();
+
+            return Ok(result);
+        }
     }
 
 }
