@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.Beers;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
+using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.RangeReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports;
 
@@ -138,7 +139,28 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
                 totalDifference = measured - app
             });
 
-        } 
+        }
+
+        [HttpGet("range-report-for-oneBeer")]
+        public async Task<ActionResult<BeerProsutoByBeerDto>> GetRangeReportForBeer(
+            [FromQuery] DateOnly from,
+            [FromQuery] DateOnly to)
+        {
+            if (from > to) return BadRequest("From datum ne sme biti posle To datuma.");
+
+            var ids = await _dailyReport.GetReportIdsForRangeAsync(from, to);
+
+            var result = await _dailyReport.GetAppProsutoByBeerForRangeAsync(ids);
+
+            return Ok(result);
+        }
+
+        [HttpPost("{idNaloga}/calculate-prosuto-for-each-beer")]
+        public async Task<IActionResult> CalculateProsutoForEachBeer(int idNaloga)
+        {
+            var updated = await _prosutoService.CalculateAndUpdateProsutoForReportAsync(idNaloga);
+            return Ok(updated);
+        }
     }
 
 }

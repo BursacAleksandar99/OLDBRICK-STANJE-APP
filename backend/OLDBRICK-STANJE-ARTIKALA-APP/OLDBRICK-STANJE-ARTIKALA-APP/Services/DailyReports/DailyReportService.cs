@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OLDBRICK_STANJE_ARTIKALA_APP.Data;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
+using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.RangeReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
@@ -118,6 +119,26 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
                 .SumAsync(s => (float?)(s.TotalProsuto)) ?? 0f;
 
             return (totalMeasured, totalApp);
+        }
+
+        public async Task<List<BeerProsutoByBeerDto>> GetAppProsutoByBeerForRangeAsync(List<int> reportIds)
+        {
+            if(reportIds == null || reportIds.Count == 0)
+                return new List<BeerProsutoByBeerDto>();
+
+            var result = await _context.DailyBeerStates
+                .Where(s => reportIds.Contains(s.IdNaloga))
+                .GroupBy(s => new { s.IdPiva, s.NazivPiva })
+                .Select(g => new BeerProsutoByBeerDto
+                {
+                    BeerId = g.Key.IdPiva,
+                    BeerName = g.Key.NazivPiva,
+                    TotalAppProsuto = g.Sum(x => x.ProsutoJednogPiva)
+
+                })
+                .OrderByDescending(x => x.TotalAppProsuto)
+                .ToListAsync();
+            return result;
         }
     }
 }

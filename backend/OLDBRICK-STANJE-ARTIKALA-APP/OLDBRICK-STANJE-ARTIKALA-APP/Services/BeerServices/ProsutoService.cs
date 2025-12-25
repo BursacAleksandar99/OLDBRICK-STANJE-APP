@@ -227,5 +227,62 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             return razlika;
         }
 
+        public async Task<List<DailyBeerState>> CalculateAndUpdateProsutoForReportAsync(int idNaloga)
+        {
+            var currentStates = await _context.DailyBeerStates
+                .Where(s => s.IdNaloga == idNaloga)
+                .ToListAsync();
+
+            if(currentStates.Count == 0)
+            {
+             throw new ArgumentException("Nema stanja za dati IdNaloga (TAB3 je prazna za taj nalog).");
+
+            }
+
+            var prevReport = await _context.DailyReports
+                .Where(r => r.IdNaloga < idNaloga)
+                .OrderByDescending(r => r.IdNaloga)
+                .FirstOrDefaultAsync();
+
+            Dictionary<int, DailyBeerState> prevByBeerId = new();
+
+            if(prevReport != null)
+            {
+                var prevStates = await _context.DailyBeerStates
+                    .Where(s => s.IdNaloga == prevReport.IdNaloga)
+                    .ToListAsync();
+
+                prevByBeerId = prevStates.GroupBy(x => x.IdPiva)
+                    .ToDictionary(g => g.Key, g => g.First());
+                    
+            }
+            foreach(var cur in currentStates)
+            {
+                float vagaEnd = cur.Izmereno;
+                float posEnd = cur.StanjeUProgramu;
+
+                float vagaStart = 0;
+                float posStart = 0;
+
+
+                if(prevByBeerId.TryGetValue(cur.IdPiva, out var prev))
+                {
+                    vagaStart = prev.Izmereno;
+                    posStart = prev.StanjeUProgramu;
+                }
+
+                var vagaPotrosnja = vagaStart - vagaEnd;
+                var posPotrosnja = posStart - posEnd;
+
+                var prosuto = vagaPotrosnja - posPotrosnja;
+                
+                cur.ProsutoJednogPiva = prosuto;
+            }
+            await _context.SaveChangesAsync();
+            return currentStates;
+        }
+
+
+
     }
 }

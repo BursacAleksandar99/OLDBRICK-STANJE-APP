@@ -78,6 +78,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
                 e.Property(e => e.Izmereno).HasColumnName("izmereno");
                 e.Property(e => e.StanjeUProgramu).HasColumnName("stanje_u_programu");
                 e.Property(e => e.NazivPiva).HasColumnName("naziv_piva");
+                e.Property(e => e.ProsutoJednogPiva).HasColumnName("prosuto_jednog_piva");
 
              
                 e.HasIndex(e => new { e.IdNaloga, e.IdPiva }).IsUnique();

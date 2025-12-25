@@ -1,4 +1,5 @@
 ﻿using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
+using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.RangeReports;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
 {
@@ -10,5 +11,6 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
         Task<DailyReportDateDto> GetTodayAsync(DateOnly date);
         Task<List<int>> GetReportIdsForRangeAsync(DateOnly from, DateOnly to);
         Task<(float totalMeasured, float totalApp)> GetTotalsForRangeAsync(List<int> reportIds);
+        Task<List<BeerProsutoByBeerDto>> GetAppProsutoByBeerForRangeAsync(List<int> reportIds);
     }
 }

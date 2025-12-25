@@ -1,4 +1,5 @@
 ﻿using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
+using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 {
@@ -11,5 +12,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         Task UpdateProsutoKantaAsync(int idNaloga, float prosutoKanta);
 
         Task<float> CalculateAndSaveProsutoRazlikaAsync(int idNaloga);
+
+        Task<List<DailyBeerState>> CalculateAndUpdateProsutoForReportAsync(int idNaloga);
     }
 }
