@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.Beers;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.RangeReports;
+using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices;
 using OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -175,6 +176,25 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             }
             return Ok(updatedBeer);
         }
+
+        [HttpPatch("{idNaloga}/states/add-batch")]
+        public async Task<ActionResult<List<DailyBeerState>>> AddBeerQuantityBatch(int idNaloga, [FromBody] List<AddMoreBeerQuantityDto> items)
+        {
+            try
+            {
+                var result = await _stateService.AddQuantityBatchAsync(idNaloga, items);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
     }
 
 }

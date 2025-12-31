@@ -78,6 +78,15 @@ async function getProsutoByRangeForEachBeer(from, to){
     return data;
 }
 
+async function addBeerQuantity(idNaloga, idPiva, kolicina){
+    if(!idNaloga || !idPiva) throw new Error("Nedostaje idNaloga ili idPiva");
+    if(typeof kolicina !== "number" || kolicina <= 0)
+        throw new Error("Kolicina mora biti pozitivan broj");
+
+    const {data} = await httpClient.patch(`/api/dailyreports/${idNaloga}/states/${idPiva}/add`, {kolicina});
+    return data;
+}
+
 
 export {
     getReportStatesById,
@@ -92,5 +101,6 @@ export {
     getDailyReportJustByDate,
     postCalculatedProsutoForEachBeer,
     getByRangeTotalProsuto,
-    getProsutoByRangeForEachBeer
+    getProsutoByRangeForEachBeer,
+    addBeerQuantity
 };

@@ -7,8 +7,10 @@ import {
   calculateProsutoOnly,
   putMeasuredProsuto,
   postCalculatedProsutoForEachBeer,
+  addBeerQuantity,
 } from "../api/helpers";
 import ProsutoKantaForm from "./ProsutoKantaForm";
+import AddQuantityRow from "./AddQuantityRow";
 
 function SaveDailyReportStates({ idNaloga }) {
   const [items, setItems] = useState([]);
@@ -19,6 +21,7 @@ function SaveDailyReportStates({ idNaloga }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("SUCCESS");
   const [prosutoKanta, setProsutoKanta] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   function handleChange(idPiva, field, value) {
     setValues((prev) => ({
@@ -122,6 +125,26 @@ function SaveDailyReportStates({ idNaloga }) {
               <h2 className="text-lg font-semibold text-white">
                 Unos dnevnog stanja
               </h2>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="rounded-md bg-[#2A2F36] px-4 py-2 text-white hover:opacity-90"
+              >
+                Dodaj količine
+              </button>
+              {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  {/* overlay */}
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setIsModalOpen(false)}
+                  />
+
+                  {/* modal box */}
+                  <div className="relative z-10  rounded-xl bg-white p-6 shadow-xl">
+                    <AddQuantityRow idNaloga={idNaloga} articles={articles} />
+                  </div>
+                </div>
+              )}
 
               <button
                 type="button"
@@ -175,7 +198,7 @@ function SaveDailyReportStates({ idNaloga }) {
                 <div
                   className={[
                     "rounded-lg px-3 py-2 text-sm border",
-                    statusType === "success"
+                    statusType === "SUCCESS"
                       ? "bg-green-500/10 text-green-300 border-green-500/20"
                       : "bg-red-500/10 text-red-300 border-red-500/20",
                   ].join(" ")}

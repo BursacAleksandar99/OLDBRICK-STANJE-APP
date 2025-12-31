@@ -88,6 +88,51 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             return state;
         }
 
+        public async Task<List<DailyBeerState>> AddQuantityBatchAsync(int idNaloga, List<AddMoreBeerQuantityDto> items)
+        {
+            if(idNaloga <= 0) throw new ArgumentException("IdNaloga nije validan.");
+            if (items == null || items.Count == 0) throw new ArgumentException("Items lista je prazna.");
+
+
+            var grouped = items.
+                GroupBy(x => x.IdPiva)
+                .Select(g => new { IdPiva = g.Key, Kolicina = g.Sum(x => x.Kolicina) })
+                .ToList();
+
+            foreach(var x in grouped)
+            {
+                if (x.IdPiva <= 0) throw new ArgumentException("IdPiva nije validan.");
+                if (x.Kolicina <= 0) throw new ArgumentException("Kolicina mora biti veca od 0.");
+            }
+
+            var idPivaList = grouped.Select(x => x.IdPiva).ToList();
+
+            var states = await _context.DailyBeerStates
+                .Where(s => s.IdNaloga == idNaloga && idPivaList.Contains(s.IdPiva))
+                .ToListAsync();
+
+            var foundIds = states.Select(s => s.IdPiva).ToHashSet();
+            var missing = idPivaList.Where(id => !foundIds.Contains(id)).ToList();
+            if(missing.Count > 0)
+            {
+                throw new KeyNotFoundException($"Ne postoji stanje u TAB3 za IdNaloga={idNaloga} za IdPiva: {string.Join(", ", missing)}");
+            }
+
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            foreach(var state in states)
+            {
+                var add =grouped.First(x => x.IdPiva == state.IdPiva).Kolicina;
+                state.Izmereno += add;
+                state.StanjeUProgramu += add;
+            }
+
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            return states;
+        }
+
 
     }
 }

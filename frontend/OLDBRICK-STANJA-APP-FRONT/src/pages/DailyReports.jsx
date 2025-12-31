@@ -1,7 +1,6 @@
 import { useState } from "react";
 import DailyReportPreview from "../components/DailyReportPreview";
 import Calendar from "../components/Calendar";
-import ProsutoKantaForm from "../components/ProsutoKantaForm";
 import { createNalogByDate, getNalogByDate } from "../api/helpers";
 import SaveDailyReportStates from "../components/SaveDailyReportStates";
 
@@ -15,22 +14,13 @@ function DailyReports() {
       const existing = await getNalogByDate(datum);
 
       if (existing) {
-        // setStatusMessageForNalog("Nalog za izabrani datum već postoji.");
-        // setTimeout(() => setStatusMessageForNalog(""), 1000);
         return;
       }
 
       const res = await createNalogByDate(datum);
       setIdNaloga(res.idNaloga);
-
-      // setStatusMessageForNalog(`Nalog za datum ${datum} je uspešno kreiran.`);
-      // setTimeout(() => setStatusMessageForNalog(""), 1000);
     } catch (err) {
       console.error(err);
-      // setStatusMessageForNalog("Došlo je do greške prilikom kreiranja naloga.");
-      // setTimeout(() => setStatusMessageForNalog(""), 1000);
-
-      // for now this state can be in comment, I will see will I remove it..
     }
   }
   async function handleCalendarChange(datum) {
@@ -63,12 +53,8 @@ function DailyReports() {
             </div>
           )}
         </div>
-        {/* <ProsutoKantaForm idNaloga={idNaloga} /> */}
-        <SaveDailyReportStates idNaloga={idNaloga} />
 
-        {/* <p className="mt-3 text-center text-white/60 text-sm">
-          Izabrani datum: <span className="text-white">{datum || "-"}</span>
-        </p> */}
+        <SaveDailyReportStates idNaloga={idNaloga} />
       </div>
       <DailyReportPreview datum={datum} onidNalogaResolved={setIdNaloga} />
     </div>
