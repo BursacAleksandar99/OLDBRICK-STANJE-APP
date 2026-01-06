@@ -15,5 +15,7 @@
 
         public float Odstupanje { get; set; }
 
+        public string TipMerenja { get; set; }
+
     }
 }

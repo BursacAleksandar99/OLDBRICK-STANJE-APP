@@ -94,6 +94,8 @@ function SaveDailyReportStates({ idNaloga }) {
     return;
   }
 
+  const isKesa = items.tipmerenja;
+
   return (
     <div className="mt-4">
       {/* Trigger button */}
@@ -161,38 +163,44 @@ function SaveDailyReportStates({ idNaloga }) {
 
             {/* CONTENT (tvoja postojeća forma) */}
             <div className="space-y-4">
-              {articles.map((b) => (
-                <div
-                  key={b.id}
-                  className="rounded-lg border border-white/10 p-3"
-                >
-                  <div className="font-semibold text-white mb-2">
-                    {b.nazivPiva}
-                  </div>
+              {articles.map((b) => {
+                const isKesa =
+                  (b.tipMerenja || "").trim().toLowerCase() === "kesa";
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="number"
-                      placeholder="VAGA"
-                      value={values[b.id]?.izmereno ?? ""}
-                      onChange={(e) =>
-                        handleChange(b.id, "izmereno", e.target.value)
-                      }
-                      className="rounded bg-white/10 px-3 py-2 text-white"
-                    />
+                return (
+                  <div
+                    key={b.id}
+                    className="rounded-lg border border-white/10 p-3"
+                  >
+                    <div className="font-semibold text-white mb-2">
+                      {b.nazivPiva}
+                    </div>
 
-                    <input
-                      type="number"
-                      placeholder="PROGRAM"
-                      value={values[b.id]?.stanjeUProgramu ?? ""}
-                      onChange={(e) =>
-                        handleChange(b.id, "stanjeUProgramu", e.target.value)
-                      }
-                      className="rounded bg-white/10 px-3 py-2 text-white"
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="number"
+                        placeholder={isKesa ? "BROJAČ" : "VAGA"}
+                        value={values[b.id]?.izmereno ?? ""}
+                        onChange={(e) =>
+                          handleChange(b.id, "izmereno", e.target.value)
+                        }
+                        className={`rounded bg-white/10 px-3 py-2 text-white
+    ${isKesa ? "placeholder:text-blue-400" : "placeholder:text-gray-400"}`}
+                      />
+
+                      <input
+                        type="number"
+                        placeholder="PROGRAM"
+                        value={values[b.id]?.stanjeUProgramu ?? ""}
+                        onChange={(e) =>
+                          handleChange(b.id, "stanjeUProgramu", e.target.value)
+                        }
+                        className="rounded bg-white/10 px-3 py-2 text-white"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <ProsutoKantaForm
                 idNaloga={idNaloga}
                 onChange={setProsutoKanta}

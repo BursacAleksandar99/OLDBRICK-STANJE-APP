@@ -38,57 +38,77 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             float totalvagaPotrosnja = 0;
             float totalposPotrosnja = 0;
 
+            var beerIds = states.Select(x => x.IdPiva).Distinct().ToList();
+
+            var CountType = await _context.Beers.Where(b => beerIds.Contains(b.Id)).ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
+
+
             foreach (var s in states)
             {
-                // 3) Nadji poslednji prethodni unos za isto pivo (TAB3) iz bilo kog starijeg naloga
-                // Posto TAB3 nema datum, moramo preko TAB2 datuma.
                 var prev = await _context.DailyBeerStates
                     .Join(_context.DailyReports,
-                          st => st.IdNaloga,
-                          dr => dr.IdNaloga,
-                          (st, dr) => new { st, dr })
+                    st => st.IdNaloga,
+                    dr => dr.IdNaloga,
+                    (st, dr) => new { st, dr })
                     .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum)
                     .OrderByDescending(x => x.dr.Datum)
                     .Select(x => x.st)
                     .FirstOrDefaultAsync();
 
-                // Ako nema prethodnog, start = end (potrosnje 0) -> ne utice na prosuto
-                var vagaStart = prev?.Izmereno ?? s.Izmereno;
-                var posStart = prev?.StanjeUProgramu ?? s.StanjeUProgramu;
+                var startVaga = prev?.Izmereno ?? s.Izmereno;
+                var startPos = prev?.StanjeUProgramu ?? s.StanjeUProgramu;
 
-                var vagaEnd = s.Izmereno;
-                var posEnd = s.StanjeUProgramu;
+                var endVaga = s.Izmereno;
+                var endPos = s.StanjeUProgramu;
 
-                var vagaPotrosnja = vagaStart - vagaEnd;
-                var posPotrosnja = posStart - posEnd;
+                var tipMerenja = CountType[s.IdPiva];
 
+                float vagaPotrosnja;
+                float posPotrosnja;
+                // NAPOMENA:
+                // - kod "bure": Izmereno predstavlja kolicinu koja OPADA (vaga)
+                // - kod "kesa": Izmereno predstavlja BROJAC (kumulativno raste)
+                //   zato se SAMO za kesa obrce proracun vagaPotrosnje,
+                //   dok POS logika (startPos - endPos) ostaje ista
+                // koristim vrednost za svako pivo a to je tipMerenja i na osnovu toga znam 
+                // koja logika gde ide za proracun!
+                if (tipMerenja == "Bure")
+                {
+                    vagaPotrosnja = startVaga - endVaga;
+                    posPotrosnja = startPos - endPos;
+                }
+                else if (tipMerenja == "Kesa")
+                {
+                    vagaPotrosnja = endVaga - startVaga;
+                    posPotrosnja = startPos - endPos;
+                }
+                else
+                {
+                    throw new ArgumentException($"Nepoznat tip merenja: '{tipMerenja}' za pivo ID {s.IdPiva}");
+                }
                 var odstupanje = posPotrosnja - vagaPotrosnja;
 
                 totalvagaPotrosnja += vagaPotrosnja;
                 totalposPotrosnja += posPotrosnja;
 
-                // prosuto = sabiramo samo negativna odstupanja (gubitak)
                 if (odstupanje < 0)
                     prosutoSum += Math.Abs(odstupanje);
-                
 
                 result.Items.Add(new BeerCalcResultDto
                 {
                     IdPiva = s.IdPiva,
 
-                    VagaStart = vagaStart,
-                    VagaEnd = vagaEnd,
+                    VagaStart = startVaga,
+                    VagaEnd = endVaga,
                     VagaPotrosnja = vagaPotrosnja,
 
-                    PosStart = posStart,
-                    PosEnd = posEnd,
+                    PosStart = startPos,
+                    PosEnd = endPos,
                     PosPotrosnja = posPotrosnja,
 
-                    Odstupanje = odstupanje,
+                    Odstupanje = odstupanje
                 });
             }
-
-            // 4) Upis u TAB2
             report.TotalProsuto = MathF.Round(prosutoSum, 2);
             report.TotalPotrosenoVaga = MathF.Round(totalvagaPotrosnja, 2);
             report.TotalPotrosenoProgram = totalposPotrosnja;
@@ -121,8 +141,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         public async Task<ProsutoResultDto> GetAllStatesByIdNaloga(int idNaloga)
         {
             var currentStates = await _context.DailyBeerStates
-        .Where(s => s.IdNaloga == idNaloga)
-        .ToListAsync();
+                .Where(s => s.IdNaloga == idNaloga)
+                .ToListAsync();
 
             var prevReport = await _context.DailyReports
                 .Where(r => r.IdNaloga < idNaloga)
@@ -135,33 +155,56 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     .Where(s => s.IdNaloga == prevReport.IdNaloga)
                     .ToListAsync();
 
+            // ✅ tip merenja mapa
+            var beerIds = currentStates.Select(x => x.IdPiva).Distinct().ToList();
+            var tipByBeerId = await _context.Beers
+                .Where(b => beerIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
+
             var items = new List<BeerCalcResultDto>();
 
             foreach (var current in currentStates)
             {
-                // Prethodno stanje za pivo sa istim ID-em.
                 var prev = prevStates.FirstOrDefault(p => p.IdPiva == current.IdPiva);
 
-                float vagaStart;
-                float posStart;
-
-                if (prev != null)
-                {
-                    vagaStart = prev.Izmereno;
-                    posStart = prev.StanjeUProgramu;
-                }
-                else
-                {
-                    // ako nema prethodnog, start = end
-                    vagaStart = current.Izmereno;
-                    posStart = current.StanjeUProgramu;
-                }
+                float vagaStart = prev?.Izmereno ?? current.Izmereno;
+                float posStart = prev?.StanjeUProgramu ?? current.StanjeUProgramu;
 
                 float vagaEnd = current.Izmereno;
                 float posEnd = current.StanjeUProgramu;
 
-                var vagaPotrosnja = vagaStart - vagaEnd;
-                var posPotrosnja = posStart - posEnd;
+                if (!tipByBeerId.TryGetValue(current.IdPiva, out var tipRaw))
+                    throw new ArgumentException($"Pivo sa ID {current.IdPiva} ne postoji u TAB1.");
+
+                var tip = tipRaw?.Trim().ToLowerInvariant();
+
+                float vagaPotrosnja;
+                float posPotrosnja;
+                // NAPOMENA:
+                // - kod "bure": Izmereno predstavlja kolicinu koja OPADA (vaga)
+                // - kod "kesa": Izmereno predstavlja BROJAC (kumulativno raste)
+                //   zato se SAMO za kesa obrce proracun vagaPotrosnje,
+                //   dok POS logika (startPos - endPos) ostaje ista
+                // koristim vrednost za svako pivo a to je tipMerenja i na osnovu toga znam 
+                // koja logika gde ide za proracun!
+                if (tip == "bure")
+                {
+                    vagaPotrosnja = vagaStart - vagaEnd;
+                    posPotrosnja = posStart - posEnd;
+                }
+                else if (tip == "kesa")
+                {
+                    
+                    vagaPotrosnja = vagaEnd - vagaStart;
+                    
+                    posPotrosnja = posStart - posEnd;
+                }
+                else
+                {
+                    throw new ArgumentException($"Nepoznat tip merenja: '{tipRaw}' za pivo ID {current.IdPiva}");
+                }
+
+                var odstupanje = posPotrosnja - vagaPotrosnja;
 
                 items.Add(new BeerCalcResultDto
                 {
@@ -176,19 +219,16 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     PosEnd = posEnd,
                     PosPotrosnja = posPotrosnja,
 
-                    Odstupanje = vagaPotrosnja - posPotrosnja
+                    Odstupanje = odstupanje,
+                    TipMerenja = tip
                 });
             }
 
-            //TAB2 TRAZIMO PROSUTO ZA TAJ DAN(nalog)
-
-            var report = await _context.DailyReports.AsNoTracking().FirstOrDefaultAsync(
-                r => r.IdNaloga == idNaloga);
+            var report = await _context.DailyReports.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.IdNaloga == idNaloga);
 
             var TotalProsuto = report?.TotalProsuto ?? 0;
             var ProsutoKanta = report?.IzmerenoProsuto ?? 0;
-
-            
 
             return new ProsutoResultDto
             {
@@ -237,7 +277,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             {
              throw new ArgumentException("Nema stanja za dati IdNaloga (TAB3 je prazna za taj nalog).");
 
+            
             }
+            var beerIds = currentStates.Select(x => x.IdPiva).Distinct().ToList();
+
+            var tipByBeerId = await _context.Beers
+                .Where(b => beerIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
 
             var prevReport = await _context.DailyReports
                 .Where(r => r.IdNaloga < idNaloga)
@@ -256,27 +302,48 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     .ToDictionary(g => g.Key, g => g.First());
                     
             }
-            foreach(var cur in currentStates)
+            
+            foreach (var cur in currentStates)
             {
-                float vagaEnd = cur.Izmereno;
-                float posEnd = cur.StanjeUProgramu;
+                float endVaga = cur.Izmereno;
+                float endPos = cur.StanjeUProgramu;
 
-                float vagaStart = 0;
-                float posStart = 0;
+                float startVaga = prevByBeerId.TryGetValue(cur.IdPiva, out var prev) ? prev.Izmereno : endVaga;
+                float startPos = prevByBeerId.TryGetValue(cur.IdPiva, out var prev2) ? prev2.StanjeUProgramu : endPos;
 
+                if (!tipByBeerId.TryGetValue(cur.IdPiva, out var tipRaw))
+                    throw new ArgumentException($"Pivo sa ID {cur.IdPiva} ne postoji u TAB1.");
 
-                if(prevByBeerId.TryGetValue(cur.IdPiva, out var prev))
+                var tip = tipRaw?.Trim().ToLowerInvariant();
+
+                float vagaPotrosnja;
+                float posPotrosnja;
+                // NAPOMENA:
+                // - kod "bure": Izmereno predstavlja kolicinu koja OPADA (vaga)
+                // - kod "kesa": Izmereno predstavlja BROJAC (kumulativno raste)
+                //   zato se SAMO za kesa obrce proracun vagaPotrosnje,
+                //   dok POS logika (startPos - endPos) ostaje ista
+                // koristim vrednost za svako pivo a to je tipMerenja i na osnovu toga znam 
+                // koja logika gde ide za proracun!
+                if (tip == "bure")
                 {
-                    vagaStart = prev.Izmereno;
-                    posStart = prev.StanjeUProgramu;
+                    vagaPotrosnja = startVaga - endVaga;
+                    posPotrosnja = startPos - endPos;
+                }
+                else if (tip == "kesa")
+                {
+                    vagaPotrosnja = endVaga - startVaga;
+                    posPotrosnja = startPos - endPos;
+                }
+                else
+                {
+                    throw new ArgumentException($"Nepoznat tip merenja: '{tipRaw}' za pivo ID {cur.IdPiva}");
                 }
 
-                var vagaPotrosnja = vagaStart - vagaEnd;
-                var posPotrosnja = posStart - posEnd;
+                var odstupanje = posPotrosnja - vagaPotrosnja;
 
-                var prosuto = vagaPotrosnja - posPotrosnja;
-                
-                cur.ProsutoJednogPiva = prosuto;
+                // Prosuto = samo kad je negativno odstupanje (izlaz > kucano)
+                cur.ProsutoJednogPiva = odstupanje < 0 ? Math.Abs(odstupanje) : 0;
             }
             await _context.SaveChangesAsync();
             return currentStates;
