@@ -140,5 +140,17 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
                 .ToListAsync();
             return result;
         }
+        public async Task RecalculateProsutoJednogPivaAsync(int idNaloga)
+        {
+            var states = await _context.DailyBeerStates.Where(s => s.IdNaloga == idNaloga)
+                .ToListAsync();
+
+            foreach(var s in states)
+            {
+                s.ProsutoJednogPiva = s.StanjeUProgramu - s.Izmereno;
+                if (s.ProsutoJednogPiva < 0) s.ProsutoJednogPiva = 0;
+            }
+            await _context.SaveChangesAsync();
+        }
     }
 }

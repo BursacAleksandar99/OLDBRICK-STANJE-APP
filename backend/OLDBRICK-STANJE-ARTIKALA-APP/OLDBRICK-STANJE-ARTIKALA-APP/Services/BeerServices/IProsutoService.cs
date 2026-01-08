@@ -14,5 +14,6 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         Task<float> CalculateAndSaveProsutoRazlikaAsync(int idNaloga);
 
         Task<List<DailyBeerState>> CalculateAndUpdateProsutoForReportAsync(int idNaloga);
+        Task<ProsutoResultDto> UpdateProsutoKantaAndRecalculateAsync(int idNaloga, float prosutoKanta);
     }
 }

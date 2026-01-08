@@ -25,6 +25,7 @@ function LastWeekReports() {
   const [result, setResult] = useState(null);
 
   async function handleFetch() {
+    console.log("FETCH RANGE", { from, to });
     setError("");
     setResult(null);
 
@@ -44,6 +45,8 @@ function LastWeekReports() {
         getByRangeTotalProsuto(from, to),
         getProsutoByRangeForEachBeer(from, to),
       ]);
+      console.log("SUMMARY", summaryData);
+      console.log("PER BEER", perBeerData);
 
       setResult(summaryData);
       setPerBeer(perBeerData);

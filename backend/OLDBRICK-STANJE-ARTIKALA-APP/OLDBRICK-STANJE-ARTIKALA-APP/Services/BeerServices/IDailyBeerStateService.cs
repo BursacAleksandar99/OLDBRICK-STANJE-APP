@@ -1,4 +1,5 @@
 ﻿using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.Beers;
+using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
@@ -11,5 +12,6 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         Task<List<DailyBeerState>> AddQuantityBatchAsync(int idNaloga, List<AddMoreBeerQuantityDto> items);
 
         Task DeleteReportAsync(int idNaloga);
+        Task<ProsutoResultDto> UpdateStatesAndRecalculateAsync(int idNaloga, List<UpdateDailyBeerStateDto> items);
     }
 }

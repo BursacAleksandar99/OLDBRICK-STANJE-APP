@@ -1,17 +1,24 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OLDBRICK_STANJE_ARTIKALA_APP.Data;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.Beers;
+using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
+using OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 {
     public class DailyBeerStateService : IDailyBeerStateService
     {
         public readonly AppDbContext _context;
+        public readonly IProsutoService _prosutoService;
+        public readonly IDailyReportService _dailyReportService;
 
-        public DailyBeerStateService(AppDbContext context)
+        public DailyBeerStateService(AppDbContext context, IProsutoService prosutoService,
+            IDailyReportService dailyReportService)
         {
             _context = context;
+            _prosutoService = prosutoService;
+            _dailyReportService = dailyReportService;
         }
 
         public async Task<List<DailyBeerState>>UpsertForReportAsync(int idNaloga, List<UpsertDailyBeerStateDto> items)
@@ -194,6 +201,55 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 await tx.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<ProsutoResultDto> UpdateStatesAndRecalculateAsync(int idNaloga, List<UpdateDailyBeerStateDto> items)
+        {
+            if (idNaloga <= 0) throw new ArgumentException("IdNaloga nije validan.");
+            if (items == null || items.Count == 0) throw new ArgumentException("Items lista je prazna.");
+
+
+            foreach(var dto in items)
+            {
+                if (dto.IdPiva <= 0) throw new ArgumentException("IdPiva nije validan.");
+                if (dto.Izmereno is < 0) throw new ArgumentException("Izmereno ne sme biti negativno.");
+                if (dto.StanjeUProgramu is < 0) throw new ArgumentException("Stanje u programu ne sme biti negativno.");
+                if (dto.Izmereno == null && dto.StanjeUProgramu == null)
+                    throw new ArgumentException("Moraš poslati bar jedno polje za update.");
+            }
+
+            var idPivaList = items.Select(x => x.IdPiva).Distinct().ToList();
+
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            var states = await _context.DailyBeerStates.Where(s => s.IdNaloga == idNaloga && idPivaList.Contains(s.IdPiva))
+                .ToListAsync();
+
+            var found = states.Select(s => s.IdPiva).ToHashSet();
+            var missing = idPivaList.Where(id => !found.Contains(id)).ToList();
+            if(missing.Count > 0)
+            {
+                throw new KeyNotFoundException
+                    ($"Ne postoji stanje u TAB3 za IdNaloga={idNaloga} za IdPiva: " +
+                    $"{string.Join(", ", missing)}");
+            }
+
+            foreach (var s in states)
+            {
+                var dto = items.First(x => x.IdPiva == s.IdPiva);
+
+                if (dto.Izmereno.HasValue) s.Izmereno = dto.Izmereno.Value;
+                if (dto.StanjeUProgramu.HasValue) s.StanjeUProgramu = dto.StanjeUProgramu.Value;
+            }
+
+            await _context.SaveChangesAsync();
+
+            await _dailyReportService.RecalculateProsutoJednogPivaAsync(idNaloga);
+
+            var result = await _prosutoService.CalculateAndSaveAsync(idNaloga);
+
+            await tx.CommitAsync();
+            return result;
         }
 
 

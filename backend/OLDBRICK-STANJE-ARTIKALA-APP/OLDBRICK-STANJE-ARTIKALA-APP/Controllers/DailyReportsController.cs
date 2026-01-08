@@ -82,6 +82,15 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             return NoContent();
         }
 
+        [HttpPut("{idNaloga:int}/prosuto-kanta/recalculate")]
+        public async Task<ActionResult<ProsutoResultDto>> UpdateProsutoKantaRecalculate(
+            int idNaloga,
+            [FromBody] ProsutoKantaDto dto)
+        {
+            var result = await _prosutoService.UpdateProsutoKantaAndRecalculateAsync(idNaloga, dto.ProsutoKanta);
+            return Ok(result);
+        }
+
         [HttpGet("{idNaloga:int}/state")]
         public async Task<ActionResult<ProsutoResultDto>> GetStates(int idNaloga)
         {
@@ -200,6 +209,15 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
         {
             await _stateService.DeleteReportAsync(idNaloga);
             return NoContent(); // 204
+        }
+
+        [HttpPatch("{idNaloga:int}/states")]
+        public async Task<ActionResult<ProsutoResultDto>> UpdateStates(
+    int idNaloga,
+    [FromBody] List<UpdateDailyBeerStateDto> items)
+        {
+            var result = await _stateService.UpdateStatesAndRecalculateAsync(idNaloga, items);
+            return Ok(result);
         }
 
     }

@@ -29,7 +29,6 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
   if (!data) {
     return <div>Loading...</div>;
   }
-  console.log("REPORT ITEMS", data.items);
 
   return (
     <div className="mt-6">

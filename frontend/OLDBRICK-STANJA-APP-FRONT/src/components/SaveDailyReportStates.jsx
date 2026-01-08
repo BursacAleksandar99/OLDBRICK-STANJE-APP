@@ -7,11 +7,11 @@ import {
   calculateProsutoOnly,
   putMeasuredProsuto,
   postCalculatedProsutoForEachBeer,
-  addBeerQuantity,
   deleteDailyReport,
+  updateDailyReportStatusAndCalculate,
+  updateProsutoKantaAndRecalculate,
 } from "../api/helpers";
 import ProsutoKantaForm from "./ProsutoKantaForm";
-import AddQuantityRow from "./AddQuantityRow";
 import AddQuantityBatch from "./AddQuantityBatch";
 
 function SaveDailyReportStates({ idNaloga }) {
@@ -25,6 +25,7 @@ function SaveDailyReportStates({ idNaloga }) {
   const [prosutoKanta, setProsutoKanta] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [msg, setMsg] = useState("");
+  const [mode, setMode] = useState("create");
 
   function handleChange(idPiva, field, value) {
     setValues((prev) => ({
@@ -34,6 +35,20 @@ function SaveDailyReportStates({ idNaloga }) {
         [field]: value,
       },
     }));
+  }
+
+  function openEditModal() {
+    const prefill = {};
+    items.forEach((x) => {
+      prefill[x.idPiva] = {
+        izmereno: x.vagaEnd ?? "",
+        stanjeUProgramu: x.posEnd ?? "",
+      };
+    });
+
+    setValues(prefill);
+    setMode("edit");
+    setShowModal(true);
   }
 
   async function handleSave() {
@@ -86,6 +101,62 @@ function SaveDailyReportStates({ idNaloga }) {
       setMsg("Greška pri brisanju naloga", error);
     }
   }
+  async function handleUpdateSave() {
+    console.log("EDIT MODE:", mode);
+    console.log("VALUES STATE:", values);
+
+    try {
+      setLoading(true);
+      setMsg("");
+
+      const payload = Object.entries(values).map(([idPiva, v]) => ({
+        idPiva: Number(idPiva),
+        izmereno: v.izmereno === "" ? null : Number(v.izmereno),
+        stanjeUProgramu:
+          v.stanjeUProgramu === "" ? null : Number(v.stanjeUProgramu),
+      }));
+
+      const result = await updateDailyReportStatusAndCalculate(
+        idNaloga,
+        payload
+      );
+
+      const proKanta = Number(prosutoKanta);
+      console.log(
+        "prosutoKanta raw:",
+        prosutoKanta,
+        "num:",
+        Number(prosutoKanta)
+      );
+
+      const raw = (prosutoKanta ?? "").toString().trim();
+
+      if (raw !== "") {
+        const proKanta = Number(raw);
+
+        if (!Number.isFinite(proKanta) || proKanta < 0) {
+          setMsg("Prosuto mora biti broj >= 0 ");
+          return;
+        }
+
+        const resultAfterKanta = await updateProsutoKantaAndRecalculate(
+          idNaloga,
+          proKanta
+        );
+        setItems(resultAfterKanta.items);
+      } else {
+        setItems(result.items);
+      }
+
+      setMsg("Izmenjeno i preračunato");
+      setShowModal(false);
+    } catch (e) {
+      console.error(e);
+      setMsg("Greška pri izmeni");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     getAllArticles().then(setArticles).catch(console.error);
@@ -125,6 +196,12 @@ function SaveDailyReportStates({ idNaloga }) {
         >
           Unesi dnevno stanje
         </button>
+        <button
+          onClick={openEditModal}
+          className="rounded-lg px-4 py-2 text-sm font-medium bg-yellow-400 text-black transition disabled:opacity-50"
+        >
+          Izmeni dnevno stanje
+        </button>
 
         <button
           onClick={handleDelete}
@@ -152,7 +229,9 @@ function SaveDailyReportStates({ idNaloga }) {
             {/* HEADER */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
-                Unos dnevnog stanja
+                {mode === "edit"
+                  ? "Izmena dnevnog stanja"
+                  : "Unos dnevnog stanja"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(true)}
@@ -248,12 +327,12 @@ function SaveDailyReportStates({ idNaloga }) {
               <button
                 type="button"
                 disabled={Object.keys(values).length === 0}
-                onClick={handleSave}
+                onClick={mode === "edit" ? handleUpdateSave : handleSave}
                 className="mt-4 w-full rounded-lg bg-[#FACC15] text-black font-semibold
-                         px-4 py-2 transition hover:bg-[#fde047]
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+             px-4 py-2 transition hover:bg-[#fde047]
+             disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sačuvaj stanje
+                {mode === "edit" ? "Sačuvaj izmene" : "Sačuvaj stanje"}
               </button>
             </div>
           </div>

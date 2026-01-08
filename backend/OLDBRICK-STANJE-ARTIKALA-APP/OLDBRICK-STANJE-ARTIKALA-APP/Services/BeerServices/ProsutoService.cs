@@ -138,6 +138,28 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             await _context.SaveChangesAsync();
         }
 
+        public async Task<ProsutoResultDto> UpdateProsutoKantaAndRecalculateAsync(int idNaloga, float prosutoKanta)
+        {
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // koristi tvoju postojecu metodu (validacije + upis)
+                await UpdateProsutoKantaAsync(idNaloga, prosutoKanta);
+
+                // ponovni proracun (koristi postojecu logiku)
+                var result = await CalculateAndSaveAsync(idNaloga);
+
+                await tx.CommitAsync();
+                return result;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task<ProsutoResultDto> GetAllStatesByIdNaloga(int idNaloga)
         {
             var currentStates = await _context.DailyBeerStates

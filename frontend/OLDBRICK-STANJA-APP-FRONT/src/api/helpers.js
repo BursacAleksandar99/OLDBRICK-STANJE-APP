@@ -97,6 +97,29 @@ async function deleteDailyReport(idNaloga){
     await httpClient.delete(`/api/dailyreports/${idNaloga}`)
 }
 
+async function updateDailyReportStatusAndCalculate(idNaloga, items){
+    if(!idNaloga) throw new Error("Ovaj nalog ne postoji.");
+    if(!Array.isArray(items) || items.length === 0){
+        throw new Error("Lista je prazna");
+    }
+    const {data} = await httpClient.patch(`/api/dailyreports/${idNaloga}/states`, items);
+    return data;
+}
+
+async function updateProsutoKantaAndRecalculate(idNaloga, prosutoKanta){
+     if (!idNaloga) throw new Error("Ovaj nalog ne postoji.");
+
+  const value = Number(prosutoKanta);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Prosuto kanta mora biti broj >= 0.");
+  }
+  const { data } = await httpClient.put(
+    `/api/dailyreports/${idNaloga}/prosuto-kanta/recalculate`,
+    { prosutoKanta: value }
+  );
+  return data;
+}
+
 
 export {
     getReportStatesById,
@@ -114,5 +137,7 @@ export {
     getProsutoByRangeForEachBeer,
     addBeerQuantity,
     addMoreBeerQuantity,
-    deleteDailyReport
+    deleteDailyReport,
+    updateDailyReportStatusAndCalculate,
+    updateProsutoKantaAndRecalculate
 };
