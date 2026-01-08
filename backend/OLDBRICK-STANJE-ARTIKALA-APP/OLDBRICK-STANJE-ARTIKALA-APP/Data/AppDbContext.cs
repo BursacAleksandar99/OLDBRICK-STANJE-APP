@@ -16,6 +16,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
 
         public DbSet<DailyBeerState> DailyBeerStates => Set<DailyBeerState>();
 
+        public DbSet<Restock> Restocks => Set<Restock>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Users>(e =>
@@ -83,6 +85,21 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
              
                 e.HasIndex(e => new { e.IdNaloga, e.IdPiva }).IsUnique();
 
+            });
+
+            modelBuilder.Entity<Restock>(e =>
+            {
+                e.ToTable("restocks");
+                e.HasKey(e => e.Id);
+
+                e.Property(e => e.Id).HasColumnName("id");
+
+                e.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()")
+                .ValueGeneratedOnAdd();
+
+                e.Property(e => e.IdNaloga).HasColumnName("id_naloga");
+                e.Property(e => e.IdPiva).HasColumnName("id_piva");
+                e.Property(e => e.Quantity).HasColumnName("quantity");
             });
         }
     }

@@ -195,6 +195,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             }
         }
 
+        [HttpDelete("{idNaloga:int}")]
+        public async Task<IActionResult> Delete(int idNaloga)
+        {
+            await _stateService.DeleteReportAsync(idNaloga);
+            return NoContent(); // 204
+        }
+
     }
 
 }

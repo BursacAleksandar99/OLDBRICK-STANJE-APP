@@ -9,5 +9,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         Task<DailyBeerState?> AddQuantityAsync(int idNaloga, int idPiva, float kolicina);
 
         Task<List<DailyBeerState>> AddQuantityBatchAsync(int idNaloga, List<AddMoreBeerQuantityDto> items);
+
+        Task DeleteReportAsync(int idNaloga);
     }
 }

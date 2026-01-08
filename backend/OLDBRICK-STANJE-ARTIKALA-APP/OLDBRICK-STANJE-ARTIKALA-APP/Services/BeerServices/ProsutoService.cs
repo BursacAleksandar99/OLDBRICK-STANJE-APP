@@ -155,7 +155,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     .Where(s => s.IdNaloga == prevReport.IdNaloga)
                     .ToListAsync();
 
-            // ✅ tip merenja mapa
+            //  tip merenja mapa
             var beerIds = currentStates.Select(x => x.IdPiva).Distinct().ToList();
             var tipByBeerId = await _context.Beers
                 .Where(b => beerIds.Contains(b.Id))
@@ -163,8 +163,16 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
             var items = new List<BeerCalcResultDto>();
 
+            var restockArticles = await _context.Restocks.Where(r => r.IdNaloga == idNaloga)
+                .GroupBy(r => r.IdPiva)
+                .Select(g => new { IdPiva = g.Key, Total = g.Sum(x => x.Quantity)})
+                .ToDictionaryAsync(x => x.IdPiva, x => x.Total);
+
             foreach (var current in currentStates)
             {
+                restockArticles.TryGetValue(current.IdPiva, out var addedDec);
+                var added = (float)addedDec;
+
                 var prev = prevStates.FirstOrDefault(p => p.IdPiva == current.IdPiva);
 
                 float vagaStart = prev?.Izmereno ?? current.Izmereno;
@@ -189,15 +197,15 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 // koja logika gde ide za proracun!
                 if (tip == "bure")
                 {
-                    vagaPotrosnja = vagaStart - vagaEnd;
-                    posPotrosnja = posStart - posEnd;
+                    vagaPotrosnja = (vagaStart + added) - vagaEnd;
+                    posPotrosnja = (posStart + added) - posEnd;
                 }
                 else if (tip == "kesa")
                 {
                     
                     vagaPotrosnja = vagaEnd - vagaStart;
                     
-                    posPotrosnja = posStart - posEnd;
+                    posPotrosnja = (posStart + added) - posEnd;
                 }
                 else
                 {

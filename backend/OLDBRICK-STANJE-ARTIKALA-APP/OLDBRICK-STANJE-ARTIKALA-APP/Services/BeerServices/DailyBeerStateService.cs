@@ -99,6 +99,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 .Select(g => new { IdPiva = g.Key, Kolicina = g.Sum(x => x.Kolicina) })
                 .ToList();
 
+         
+
             foreach(var x in grouped)
             {
                 if (x.IdPiva <= 0) throw new ArgumentException("IdPiva nije validan.");
@@ -106,6 +108,9 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             }
 
             var idPivaList = grouped.Select(x => x.IdPiva).ToList();
+
+            var tipMer = await _context.Beers.Where(b => idPivaList.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
 
             var states = await _context.DailyBeerStates
                 .Where(s => s.IdNaloga == idNaloga && idPivaList.Contains(s.IdPiva))
@@ -123,8 +128,30 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             foreach(var state in states)
             {
                 var add =grouped.First(x => x.IdPiva == state.IdPiva).Kolicina;
-                state.Izmereno += add;
-                state.StanjeUProgramu += add;
+
+                _context.Restocks.Add(new Restock
+                {
+                    IdNaloga = idNaloga,
+                    IdPiva = state.IdPiva,
+                    Quantity = (decimal)add
+                });
+
+                var tip = tipMer[state.IdPiva]?.Trim().ToLowerInvariant();
+
+
+               if(tip == "bure")
+                {
+                    state.Izmereno += add;
+                    state.StanjeUProgramu += add;
+                }
+               else if(tip == "kesa")
+                {
+                    state.StanjeUProgramu += add;
+                }
+                else
+                {
+                    throw new ArgumentException("Nepoznat tip merenja za ovaj artikal.");
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -132,6 +159,43 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
             return states;
         }
+
+        public async Task DeleteReportAsync(int idNaloga)
+        {
+            if (idNaloga <= 0) throw new ArgumentException("IdNaloga nije validan.");
+
+            var report = await _context.DailyReports
+                .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
+
+            if (report == null)
+                throw new KeyNotFoundException("Dnevni nalog ne postoji.");
+
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var states = await _context.DailyBeerStates
+                    .Where(s => s.IdNaloga == idNaloga)
+                    .ToListAsync();
+                _context.DailyBeerStates.RemoveRange(states);
+
+                var restocks = await _context.Restocks
+                    .Where(r => r.IdNaloga == idNaloga)
+                    .ToListAsync();
+                _context.Restocks.RemoveRange(restocks);
+
+                _context.DailyReports.Remove(report);
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
 
 
     }
