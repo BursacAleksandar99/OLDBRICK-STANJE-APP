@@ -20,6 +20,27 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // ===== CORS (JEDNOM) =====
+            const string corsPolicyName = "FrontendCors";
+
+            var allowedOrigins = new[]
+            {
+                "https://oldbrick-stanje-app.vercel.app",
+                "http://localhost:5173",
+                "http://localhost:3000"
+            };
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(corsPolicyName, policy =>
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                // .AllowCredentials() // koristi samo ako saljes cookies; za JWT u headeru ne treba
+                );
+            });
+
+            // Controllers + FloatConverter
             builder.Services
                 .AddControllers()
                 .AddJsonOptions(options =>
@@ -27,38 +48,18 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
                     options.JsonSerializerOptions.Converters.Add(new FloatConverter());
                 });
 
-
-            var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-            Console.WriteLine("CS: " + cs?.Replace("Password=", "Password=***"));
-
-            //try
-            //{
-            //    using var conn = new NpgsqlConnection(cs);
-            //    conn.Open();
-
-            //    using var cmd = new NpgsqlCommand("select current_user", conn);
-            //    var user = cmd.ExecuteScalar()?.ToString();
-
-            //    Console.WriteLine("CONNECTED as: " + user);
-            //}
-            //catch (Exception ex)
-            //{
-            //    Console.WriteLine("DB CONNECT FAIL: " + ex.GetType().FullName);
-            //    Console.WriteLine(ex.Message);
-            //    Console.WriteLine(ex.InnerException?.Message);
-            //    throw;
-            //}
-
+            // DB
             builder.Services.AddDbContext<AppDbContext>(opt =>
-            opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+                opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
             var connectionstring = builder.Configuration.GetConnectionString("DefaultConnection");
             Console.WriteLine(">>> DefaultConnection from config: " + connectionstring);
 
+            // JWT settings
             var jwtSettings = new JwtSettings();
             builder.Configuration.GetSection("Jwt").Bind(jwtSettings);
 
-
-            //swagger
+            // Swagger (tvoj sa Bearer)
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Oldbrick API", Version = "v1" });
@@ -87,7 +88,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
                 });
             });
 
-
+            // DI
             builder.Services.AddSingleton(jwtSettings);
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IPasswordService, PasswordService>();
@@ -97,81 +98,52 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
             builder.Services.AddScoped<IDailyReportService, DailyReportService>();
             builder.Services.AddScoped<IDailyBeerStateService, DailyBeerStateService>();
             builder.Services.AddScoped<IProsutoService, ProsutoService>();
-            
 
-
+            // Auth
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-                .AddJwtBearer(options =>
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
 
-                        ValidIssuer = jwtSettings.Issuer,
-                        ValidAudience = jwtSettings.Audience,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
-
-
-                        ClockSkew = TimeSpan.Zero
-                    };
-                });
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
 
             builder.Services.AddAuthorization();
 
-
-            // Add services to the container.
-
-            builder.Services.AddControllers();
-
-            var corsPolicyName = "FrontendCors";
-
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy(corsPolicyName, policy =>
-                {
-                    policy.WithOrigins("http://localhost:5173")
-                    .AllowAnyHeader()
-                   
-                    .AllowAnyMethod();
-                });
-            });
-
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // Endpoints explorer (za swagger)
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+
             app.UseDeveloperExceptionPage();
 
-            //app.UseHttpsRedirection();
+            app.UseRouting();
 
+            // CORS mora posle routing-a, pre auth
             app.UseCors(corsPolicyName);
 
-            // Configure the HTTP request pipeline.
-            //if (app.Environment.IsDevelopment())
-            //{
-            //    app.UseSwagger();
-            //    app.UseSwaggerUI();
-            //}
             app.UseSwagger();
             app.UseSwaggerUI();
 
-
             app.UseAuthentication();
-
             app.UseAuthorization();
 
-
             app.MapControllers();
-
             app.MapGet("/health", () => Results.Ok("OK"));
+
             app.Run();
         }
     }
