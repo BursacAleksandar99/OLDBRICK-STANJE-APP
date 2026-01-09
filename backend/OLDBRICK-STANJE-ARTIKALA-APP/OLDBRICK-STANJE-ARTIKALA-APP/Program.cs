@@ -155,13 +155,14 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
             app.UseCors(corsPolicyName);
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            //if (app.Environment.IsDevelopment())
+            //{
+            //    app.UseSwagger();
+            //    app.UseSwaggerUI();
+            //}
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
-            
 
             app.UseAuthentication();
 
@@ -170,6 +171,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
 
             app.MapControllers();
 
+            app.MapGet("/health", () => Results.Ok("OK"));
             app.Run();
         }
     }
