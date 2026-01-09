@@ -213,8 +213,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
 
         [HttpPatch("{idNaloga:int}/states")]
         public async Task<ActionResult<ProsutoResultDto>> UpdateStates(
-    int idNaloga,
-    [FromBody] List<UpdateDailyBeerStateDto> items)
+         int idNaloga,
+            [FromBody] List<UpdateDailyBeerStateDto> items)
         {
             var result = await _stateService.UpdateStatesAndRecalculateAsync(idNaloga, items);
             return Ok(result);

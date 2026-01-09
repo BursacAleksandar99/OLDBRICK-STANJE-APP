@@ -43,13 +43,16 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             var CountType = await _context.Beers.Where(b => beerIds.Contains(b.Id)).ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
 
 
+            float sumNeg = 0;
+            float sumPos = 0;
+
             foreach (var s in states)
             {
                 var prev = await _context.DailyBeerStates
                     .Join(_context.DailyReports,
-                    st => st.IdNaloga,
-                    dr => dr.IdNaloga,
-                    (st, dr) => new { st, dr })
+                        st => st.IdNaloga,
+                        dr => dr.IdNaloga,
+                        (st, dr) => new { st, dr })
                     .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum)
                     .OrderByDescending(x => x.dr.Datum)
                     .Select(x => x.st)
@@ -65,13 +68,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
                 float vagaPotrosnja;
                 float posPotrosnja;
-                // NAPOMENA:
-                // - kod "bure": Izmereno predstavlja kolicinu koja OPADA (vaga)
-                // - kod "kesa": Izmereno predstavlja BROJAC (kumulativno raste)
-                //   zato se SAMO za kesa obrce proracun vagaPotrosnje,
-                //   dok POS logika (startPos - endPos) ostaje ista
-                // koristim vrednost za svako pivo a to je tipMerenja i na osnovu toga znam 
-                // koja logika gde ide za proracun!
+
                 if (tipMerenja == "Bure")
                 {
                     vagaPotrosnja = startVaga - endVaga;
@@ -86,14 +83,18 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 {
                     throw new ArgumentException($"Nepoznat tip merenja: '{tipMerenja}' za pivo ID {s.IdPiva}");
                 }
+
                 var odstupanje = posPotrosnja - vagaPotrosnja;
 
                 totalvagaPotrosnja += vagaPotrosnja;
                 totalposPotrosnja += posPotrosnja;
 
-                //if (odstupanje < 0) // u nasem slucaju ovo nam ne treba
-                // suma uzima i negativne i pozitivne vrednosti :) 
-                    prosutoSum += Math.Abs(odstupanje);
+                // ✅ NETO SUMA: prvo saberi negativne i pozitivne posebno
+                if (odstupanje < 0) sumNeg += odstupanje;   // ostaje negativno
+                else sumPos += odstupanje;                  // pozitivno
+
+                // ✅ krajnji rezultat (neto) u prosutoSum (možeš i na kraju petlje, ali ovako ti je jasno)
+                prosutoSum = sumNeg + sumPos;
 
                 result.Items.Add(new BeerCalcResultDto
                 {

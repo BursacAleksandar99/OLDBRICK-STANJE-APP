@@ -39,9 +39,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
             data.totalProsuto < 0 ? "text-green-400" : "text-red-400"
           }`}
         >
-          {data.totalProsuto === 0
-            ? data.totalProsuto
-            : `-${data.totalProsuto}`}
+          {data.totalProsuto === 0 ? data.totalProsuto : `${data.totalProsuto}`}
         </span>
       </h3>
       <h3 className="text-center text-lg text-gray-300 mb-3">
