@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   postDailyReportStates,
   getReportStatesById,
@@ -174,6 +174,33 @@ function SaveDailyReportStates({ idNaloga }) {
       .finally(() => setLoading(false));
   }, [idNaloga]);
 
+  const articleOrder = [
+    "Stara cigla svetla",
+    "Stara cigla IPA",
+    "Nektar",
+    "Haineken",
+    "Paulaner svetli",
+    "Paulaner psenica",
+    "Kozel tamno",
+    "Blank",
+    "Tuborg",
+    "Kafa",
+  ];
+
+  const displayArticles = React.useMemo(() => {
+    return [...articles].sort((a, b) => {
+      const ia = articleOrder.indexOf(a.nazivPiva);
+      const ib = articleOrder.indexOf(b.nazivPiva);
+
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+
+      return ia - ib;
+    });
+  }, [articles]);
+  const isKesa = items.tipmerenja;
+
   if (!idNaloga) {
     return <div className="text-white/60">Učitavanje...</div>;
   }
@@ -181,8 +208,6 @@ function SaveDailyReportStates({ idNaloga }) {
   if (loading) {
     return;
   }
-
-  const isKesa = items.tipmerenja;
 
   return (
     <div className="mt-4">
@@ -268,7 +293,7 @@ function SaveDailyReportStates({ idNaloga }) {
 
             {/* CONTENT (tvoja postojeća forma) */}
             <div className="space-y-4">
-              {articles.map((b) => {
+              {displayArticles.map((b) => {
                 const isKesa =
                   (b.tipMerenja || "").trim().toLowerCase() === "kesa";
 

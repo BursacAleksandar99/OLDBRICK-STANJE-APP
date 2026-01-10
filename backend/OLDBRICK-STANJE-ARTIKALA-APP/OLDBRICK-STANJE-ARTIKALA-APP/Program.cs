@@ -20,6 +20,20 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var cs = builder.Configuration.GetConnectionString("DefaultConnection")
+         ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
+         ?? builder.Configuration["DATABASE_URL"];
+
+            Console.WriteLine("=== EFFECTIVE DB SETTINGS (local) ===");
+            Console.WriteLine(cs);
+
+
+            try
+            {
+                var b = new Npgsql.NpgsqlConnectionStringBuilder(cs);
+                Console.WriteLine($" Host={b.Host} Port={b.Port} DB={b.Database} User={b.Username} SSL={b.SslMode}");
+            }
+            catch { /* ignore parse errors */ }
             // ===== CORS (JEDNOM) =====
             const string corsPolicyName = "FrontendCors";
 

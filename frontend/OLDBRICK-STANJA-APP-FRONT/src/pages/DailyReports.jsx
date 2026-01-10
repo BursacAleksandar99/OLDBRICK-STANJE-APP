@@ -28,6 +28,8 @@ function DailyReports() {
     handleGetOrCreateNalog(datum);
   }
 
+  console.log("URL", import.meta.env.VITE_API_BASE_URL);
+
   return (
     <div className="pt-20 px-4">
       <h1 className="text-xl font-semibold text-white">Unesi stanje</h1>

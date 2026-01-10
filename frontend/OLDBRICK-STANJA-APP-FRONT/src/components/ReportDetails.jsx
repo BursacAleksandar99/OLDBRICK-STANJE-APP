@@ -32,10 +32,10 @@ function ReportDetails({ items }) {
                 <div
                   className={`text-sm font-semibold ${
                     x.odstupanje === 0
-                      ? "text-green-400"
+                      ? "text-yellow-400"
                       : x.odstupanje < 0
                       ? "text-red-400"
-                      : "text-red-500"
+                      : "text-green-400"
                   }`}
                 >
                   Odst: {x.odstupanje}
@@ -130,7 +130,15 @@ function ReportDetails({ items }) {
                 <td className="px-3 py-2 text-right">{x.posStart}</td>
                 <td className="px-3 py-2 text-right">{x.posEnd}</td>
                 <td className="px-3 py-2 text-right">{x.posPotrosnja}</td>
-                <td className="px-3 py-2 text-right font-semibold">
+                <td
+                  className={`px-3 py-2 text-right font-semibold ${
+                    x.odstupanje === 0
+                      ? "text-yellow-400"
+                      : x.odstupanje < 0
+                      ? "text-red-400"
+                      : "text-green-400"
+                  }`}
+                >
                   {x.odstupanje}
                 </td>
               </tr>
