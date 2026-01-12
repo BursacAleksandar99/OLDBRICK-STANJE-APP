@@ -311,6 +311,17 @@ function SaveDailyReportStates({ idNaloga }) {
                 const isKesa =
                   (b.tipMerenja || "").trim().toLowerCase() === "kesa";
                 const prev = prevMap[b.id]; // JUCERASNJE VREDNOSTI ZA SVAKO PIVO
+                const vagaDanas = Number(values[b.id]?.izmereno);
+                const posDanas = Number(values[b.id]?.stanjeUProgramu);
+
+                const razlikaVaga =
+                  prev?.prevVaga != null && !Number.isNaN(vagaDanas)
+                    ? Number(prev.prevVaga) - vagaDanas
+                    : null;
+                const razlikaPos =
+                  prev?.prevPos != null && !Number.isNaN(posDanas)
+                    ? Number(prev.prevPos) - posDanas
+                    : null;
 
                 return (
                   <div
@@ -364,6 +375,21 @@ function SaveDailyReportStates({ idNaloga }) {
                         }
                         className="rounded bg-white/10 px-3 py-2 text-white"
                       />
+                    </div>
+                    <div className="mt-2 flex items-center justify-end text-xs text-gray-400">
+                      {/* <span>
+                        Potrošnja {isKesa ? "BROJAČ" : "VAGA"}:{" "}
+                        <span className="text-gray-200 font-medium">
+                          {razlikaVaga != null ? razlikaVaga.toFixed(2) : "—"}
+                        </span>
+                      </span> */}
+
+                      <span>
+                        Potrošnja POS:{" "}
+                        <span className="text-gray-200 font-medium">
+                          {razlikaPos != null ? razlikaPos.toFixed(2) : "—"}
+                        </span>
+                      </span>
                     </div>
                   </div>
                 );
