@@ -69,7 +69,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 float vagaPotrosnja;
                 float posPotrosnja;
 
-                if (tipMerenja == "Bure"|| tipMerenja == "Kafa")
+                if (tipMerenja == "Bure" || tipMerenja == "Kafa")
                 {
                     vagaPotrosnja = startVaga - endVaga;
                     posPotrosnja = startPos - endPos;
@@ -102,7 +102,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     prosutoSum = sumNeg + sumPos;
                 }
 
-                
+
 
                 result.Items.Add(new BeerCalcResultDto
                 {
@@ -127,6 +127,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             result.TotalProsuto = MathF.Round(prosutoSum, 2);
             return result;
         }
+
 
         public async Task UpdateProsutoKantaAsync(int idNaloga, float prosutoKanta)
         {
@@ -388,6 +389,110 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             await _context.SaveChangesAsync();
             return currentStates;
         }
+
+        //SLICNU METODU IMAM, ALI MI JE LAKSE OVO OVDE POSTAVITI UMESTO ISPRAVLJATI.. MORAM ONDA NA STO MESTA
+        //A TO STVARNO SAD NE MOGU DA RADIM.. ZNAM DA OVO NIJE DOBRA PRAKSA..
+        //AKO MENJAM CalculateAndSaveAsync(int idNaloga) MENJAM I OVDE! 
+
+        public async Task<(ProsutoResultDto result, float totalVaga, float totalPos)> CalcProsutoForPotrosnjaVagaAndPos(int idNaloga)
+        {
+            var report = await _context.DailyReports
+                .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
+
+            if (report == null)
+                throw new ArgumentException("Dnevni nalog ne postoji.");
+
+            var states = await _context.DailyBeerStates
+                .Where(x => x.IdNaloga == idNaloga)
+                .ToListAsync();
+
+            if (states.Count == 0)
+                throw new ArgumentException("Nema unetih stavki za ovaj nalog.");
+
+            var result = new ProsutoResultDto { IdNaloga = idNaloga };
+
+            float prosutoSum = 0;
+            float totalvagaPotrosnja = 0;
+            float totalposPotrosnja = 0;
+
+            var beerIds = states.Select(x => x.IdPiva).Distinct().ToList();
+            var countType = await _context.Beers
+                .Where(b => beerIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
+
+            float sumNeg = 0;
+            float sumPos = 0;
+
+            foreach (var s in states)
+            {
+                var prev = await _context.DailyBeerStates
+                    .Join(_context.DailyReports,
+                        st => st.IdNaloga,
+                        dr => dr.IdNaloga,
+                        (st, dr) => new { st, dr })
+                    .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum)
+                    .OrderByDescending(x => x.dr.Datum)
+                    .Select(x => x.st)
+                    .FirstOrDefaultAsync();
+
+                var startVaga = prev?.Izmereno ?? s.Izmereno;
+                var startPos = prev?.StanjeUProgramu ?? s.StanjeUProgramu;
+
+                var endVaga = s.Izmereno;
+                var endPos = s.StanjeUProgramu;
+
+                var tipMerenja = countType[s.IdPiva];
+
+                float vagaPotrosnja;
+                float posPotrosnja;
+
+                if (tipMerenja == "Bure" || tipMerenja == "Kafa")
+                {
+                    vagaPotrosnja = startVaga - endVaga;
+                    posPotrosnja = startPos - endPos;
+                }
+                else if (tipMerenja == "Kesa")
+                {
+                    vagaPotrosnja = endVaga - startVaga;
+                    posPotrosnja = startPos - endPos;
+                }
+                else
+                {
+                    throw new ArgumentException($"Nepoznat tip merenja: '{tipMerenja}' za pivo ID {s.IdPiva}");
+                }
+
+                var odstupanje = posPotrosnja - vagaPotrosnja;
+
+                var includeInProsuto = !string.Equals(tipMerenja, "Kafa", StringComparison.OrdinalIgnoreCase);
+                if (includeInProsuto)
+                {
+                    totalvagaPotrosnja += vagaPotrosnja;
+                    totalposPotrosnja += posPotrosnja;
+
+                    if (odstupanje < 0) sumNeg += odstupanje;
+                    else sumPos += odstupanje;
+
+                    prosutoSum = sumNeg + sumPos;
+                }
+
+                result.Items.Add(new BeerCalcResultDto
+                {
+                    IdPiva = s.IdPiva,
+                    VagaStart = startVaga,
+                    VagaEnd = endVaga,
+                    VagaPotrosnja = vagaPotrosnja,
+                    PosStart = startPos,
+                    PosEnd = endPos,
+                    PosPotrosnja = posPotrosnja,
+                    Odstupanje = odstupanje
+                });
+            }
+
+            result.TotalProsuto = MathF.Round(prosutoSum, 2);
+
+            return (result, totalvagaPotrosnja, totalposPotrosnja);
+        }
+
 
 
 

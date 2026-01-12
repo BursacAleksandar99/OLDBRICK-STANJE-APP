@@ -3,16 +3,19 @@ using OLDBRICK_STANJE_ARTIKALA_APP.Data;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.RangeReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.Entities;
+using OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices;
 
 namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
 {
     public class DailyReportService : IDailyReportService
     {
         private readonly AppDbContext _context;
+        private readonly IProsutoService _prosutoService;
 
-        public DailyReportService(AppDbContext context)
+        public DailyReportService(AppDbContext context, IProsutoService prosutoService)
         {
             _context = context;
+            _prosutoService = prosutoService;
         }
 
         public async Task<DailyReportResponseDto> CreateByDateAsync(DateOnly datum)
@@ -213,5 +216,42 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
             }
             await _context.SaveChangesAsync();
         }
+
+        //UPIS (MOZDA ZATREBA!)
+        public async Task<TotalPotrosnjaDto> PostTotalPotrosnjaVagaAndPOS(int idNaloga)
+        {
+            var (result, totalVaga, totalPos) =
+                await _prosutoService.CalcProsutoForPotrosnjaVagaAndPos(idNaloga);
+
+            var report = await _context.DailyReports
+                .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
+
+            report.TotalProsuto = result.TotalProsuto;
+            report.TotalPotrosenoVaga = MathF.Round(totalVaga, 2);
+            report.TotalPotrosenoProgram = MathF.Round(totalPos, 2);
+
+            await _context.SaveChangesAsync();
+
+            //  OVO JE RESPONSE
+            return new TotalPotrosnjaDto
+            {
+                IdNaloga = idNaloga,
+                TotalVagaPotrosnja = MathF.Round(totalVaga, 2),
+                TotalPosPotrosnja = MathF.Round(totalPos, 2)
+            };
+        }
+        //CITANJE
+        public async Task<TotalPotrosnjaDto> GetTotalPotrosnjaVagaAndPOS(int idNaloga)
+        {
+            var (_, totalVaga, totalPos) = await _prosutoService.CalcProsutoForPotrosnjaVagaAndPos(idNaloga);
+
+            return new TotalPotrosnjaDto
+            {
+                IdNaloga = idNaloga,
+                TotalVagaPotrosnja = MathF.Round(totalVaga, 2),
+                TotalPosPotrosnja = MathF.Round(totalPos, 2)
+            };
+        }
+
     }
 }

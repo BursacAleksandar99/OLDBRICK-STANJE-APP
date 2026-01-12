@@ -230,6 +230,19 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             return NoContent();
         }
 
+        [HttpGet("{idNaloga}/total-potrosnja")]
+        public async Task<ActionResult<TotalPotrosnjaDto>> GetTotalPotrosnja(
+    int idNaloga)
+        {
+            if (idNaloga <= 0)
+                return BadRequest("IdNaloga nije validan.");
+
+            var result = await _dailyReport
+                .GetTotalPotrosnjaVagaAndPOS(idNaloga);
+
+            return Ok(result);
+        }
+
     }
 
     

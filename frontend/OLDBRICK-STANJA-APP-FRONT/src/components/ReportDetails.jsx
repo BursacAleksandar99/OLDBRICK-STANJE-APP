@@ -38,7 +38,7 @@ function ReportDetails({ items }) {
                       : "text-green-400"
                   }`}
                 >
-                  Odst: {x.odstupanje}
+                  Odst: {Number(x.odstupanje).toFixed(2)}
                 </div>
               </div>
 
@@ -47,36 +47,48 @@ function ReportDetails({ items }) {
                   <div className="text-xs text-gray-400">
                     {isKesa ? "BROJAČ start" : "Vaga start"}
                   </div>
-                  <div className="font-medium">{x.vagaStart}</div>
+                  <div className="font-medium">
+                    {Number(x.vagaStart).toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="rounded-md bg-black/20 p-2">
                   <div className="text-xs text-gray-400">
                     {isKesa ? "BROJAČ end" : "Vaga end"}
                   </div>
-                  <div className="font-medium">{x.vagaEnd}</div>
+                  <div className="font-medium">
+                    {Number(x.vagaEnd).toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="rounded-md bg-black/20 p-2">
                   <div className="text-xs text-gray-400">
                     {isKesa ? "BROJAČ potrošnja" : "Vaga potrošnja"}
                   </div>
-                  <div className="font-semibold">{x.vagaPotrosnja}</div>
+                  <div className="font-semibold">
+                    {Number(x.vagaPotrosnja).toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="rounded-md bg-black/20 p-2">
                   <div className="text-xs text-gray-400">POS potrošnja</div>
-                  <div className="font-semibold">{x.posPotrosnja}</div>
+                  <div className="font-semibold">
+                    {Number(x.posPotrosnja).toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="rounded-md bg-black/20 p-2">
                   <div className="text-xs text-gray-400">POS start</div>
-                  <div className="font-medium">{x.posStart}</div>
+                  <div className="font-medium">
+                    {Number(x.posStart).toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="rounded-md bg-black/20 p-2">
                   <div className="text-xs text-gray-400">POS end</div>
-                  <div className="font-medium">{x.posEnd}</div>
+                  <div className="font-medium">
+                    {Number(x.posEnd).toFixed(2)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -111,25 +123,37 @@ function ReportDetails({ items }) {
                   <div className="text-xs text-gray-400">
                     {x.tipMerenja == "kesa" ? "BROJAČ start" : "Vaga start"}
                   </div>
-                  <div className="font-medium">{x.vagaStart}</div>
+                  <div className="font-medium">
+                    {Number(x.vagaStart).toFixed(2)}
+                  </div>
                 </td>
 
                 <td className="px-3 py-2 text-right">
                   <div className="text-xs text-gray-400">
                     {x.tipMerenja == "kesa" ? "BROJAČ end" : "Vaga end"}
                   </div>
-                  <div className="font-medium">{x.vagaEnd}</div>
+                  <div className="font-medium">
+                    {Number(x.vagaEnd).toFixed(2)}
+                  </div>
                 </td>
 
                 <td className="px-3 py-2 text-right">
                   <div className="text-xs text-gray-400">
                     {x.tipMerenja === "kesa" ? "BROJAČ pot." : "Vaga pot."}
                   </div>
-                  <div className="font-semibold">{x.vagaPotrosnja}</div>
+                  <div className="font-semibold">
+                    {Number(x.vagaPotrosnja).toFixed(2)}
+                  </div>
                 </td>
-                <td className="px-3 py-2 text-right">{x.posStart}</td>
-                <td className="px-3 py-2 text-right">{x.posEnd}</td>
-                <td className="px-3 py-2 text-right">{x.posPotrosnja}</td>
+                <td className="px-3 py-2 text-right">
+                  {Number(x.posStart).toFixed(2)}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {Number(x.posEnd).toFixed(2)}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {Number(x.posPotrosnja).toFixed(2)}
+                </td>
                 <td
                   className={`px-3 py-2 text-right font-semibold ${
                     x.odstupanje === 0
@@ -139,7 +163,7 @@ function ReportDetails({ items }) {
                       : "text-green-400"
                   }`}
                 >
-                  {x.odstupanje}
+                  {Number(x.odstupanje).toFixed(2)}
                 </td>
               </tr>
             ))}
