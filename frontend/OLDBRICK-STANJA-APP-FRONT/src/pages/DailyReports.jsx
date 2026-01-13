@@ -32,7 +32,7 @@ function DailyReports() {
 
   return (
     <div className="pt-20 px-4">
-      <h1 className="text-xl font-semibold text-white">Unesi stanje</h1>
+      <h1 className="text-xl font-semibold text-white">KREIRAJ DNEVNO NALOG</h1>
       <div className="pt-20 px-4">
         <div className="mt-4">
           <Calendar value={datum} onChange={handleCalendarChange} />

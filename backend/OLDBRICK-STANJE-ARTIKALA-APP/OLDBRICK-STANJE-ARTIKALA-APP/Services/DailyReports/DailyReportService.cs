@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OLDBRICK_STANJE_ARTIKALA_APP.Data;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.DailyReports;
 using OLDBRICK_STANJE_ARTIKALA_APP.DTOs.RangeReports;
@@ -378,6 +379,40 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
                 TotalFromInventoryProsuto = totalOtpis
                 // TotalFromInventoryProsutoPoApp computed u DTO (POS - VAGA) razlika ->  manjak
             };
+        }
+
+        public async Task<long> CreateInventoryDate([FromBody] CreateInventoryResetDto dto)
+        {
+            if (dto == null) throw new ArgumentException("Body je prazan.");
+            if (dto.DatumPopisa == default) throw new ArgumentException("DatumPopisa nije validan.");
+
+            var exists = await _context.InventoryResets
+                .AnyAsync(x => DateOnly.FromDateTime(x.DatumPopisa.Date) == dto.DatumPopisa);
+
+            if (exists) throw new ArgumentException("Popis za taj datum već postoji.");
+
+            // Cuvamo kao UTC 00:00 da se ne pomeri datum zbog timezone-a
+            var datumPopisaUtc = new DateTime(
+                dto.DatumPopisa.Year,
+                dto.DatumPopisa.Month,
+                dto.DatumPopisa.Day,
+                0, 0, 0,
+                DateTimeKind.Utc
+            );
+
+            var entity = new InventoryReset
+            {
+                DatumPopisa = datumPopisaUtc,
+                Napomena = dto.Napomena,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.InventoryResets.Add(entity);
+            await _context.SaveChangesAsync();
+
+            return entity.Id;
+
+
         }
 
     }

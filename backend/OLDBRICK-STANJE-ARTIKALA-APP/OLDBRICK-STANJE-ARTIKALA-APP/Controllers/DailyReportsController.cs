@@ -261,6 +261,25 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             return Ok(dto);
         }
 
+        [HttpPost("inventory-reset")]
+        public async Task<IActionResult> CreateInventoryReset([FromBody] CreateInventoryResetDto dto)
+        {
+            try
+            {
+                var id = await _dailyReport.CreateInventoryDate(dto);
+                return Ok(new
+                {
+                    id,
+                    datumPopisa = dto.DatumPopisa,
+                    dto.Napomena
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 
     
