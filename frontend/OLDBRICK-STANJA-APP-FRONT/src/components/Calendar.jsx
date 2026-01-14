@@ -30,11 +30,15 @@ function mondayIndex(jsDay) {
   return (jsDay + 6) % 7;
 }
 
-function Calendar({ value, onChange, label = "Datum" }) {
+function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
   const selected = useMemo(() => parseISO(value), [value]);
 
   const [viewDate, setViewDate] = useState(() => selected ?? new Date());
   const [markedMap, setMarkedMap] = useState(new Map());
+
+  useEffect(() => {
+    console.log("CALENDAR PATCH:", calendarPatch);
+  }, [calendarPatch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +65,44 @@ function Calendar({ value, onChange, label = "Datum" }) {
 
   useEffect(() => {
     if (selected) setViewDate(selected);
-  }, [value]); // sync when parent changes
+  }, [value]);
+
+  useEffect(() => {
+    if (!calendarPatch?.type) return;
+
+    setMarkedMap((prev) => {
+      const next = new Map(prev);
+
+      // ADD: imamo datum + idNaloga
+      if (
+        calendarPatch.type === "add" &&
+        calendarPatch.datum &&
+        calendarPatch.idNaloga
+      ) {
+        next.set(calendarPatch.datum, calendarPatch.idNaloga);
+        return next;
+      }
+
+      // REMOVE: ako imamo datum, brisemo direktno
+      if (calendarPatch.type === "remove" && calendarPatch.datum) {
+        next.delete(calendarPatch.datum);
+        return next;
+      }
+
+      // REMOVE: ako nemamo datum, ali imamo idNaloga -> nadjii datum i obrisi
+      if (calendarPatch.type === "remove" && calendarPatch.idNaloga) {
+        for (const [datumKey, nalogId] of next.entries()) {
+          if (nalogId === calendarPatch.idNaloga) {
+            next.delete(datumKey);
+            break;
+          }
+        }
+        return next;
+      }
+
+      return next;
+    });
+  }, [calendarPatch]);
 
   const monthTitle = useMemo(() => {
     return viewDate.toLocaleString("sr-RS", { month: "long", year: "numeric" });

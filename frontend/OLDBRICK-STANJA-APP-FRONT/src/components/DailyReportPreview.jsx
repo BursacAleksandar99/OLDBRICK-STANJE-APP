@@ -4,6 +4,7 @@ import {
   getNalogByDate,
   getTotalPotrosnjaVagaAndPos,
   getDailyReportByDateWithBiggerOutput,
+  getTotalsSinceLastInventoryReset,
 } from "../api/helpers";
 import ReportDetails from "./ReportDetails";
 
@@ -12,30 +13,46 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
   const [idNaloga, setIdNaloga] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [totals, setTotals] = useState(null);
+  const [sinceLastInventory, setSinceLastInventory] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!datum) return;
+
+    setLoading(true);
+    setData(null);
+    setTotals(null);
+    setSinceLastInventory(null);
+    setIdNaloga(null);
+
     getDailyReportByDateWithBiggerOutput(datum)
       .then((res) => {
         setIdNaloga(res.idNaloga);
         onidNalogaResolved?.(res.idNaloga);
       })
-
       .catch(console.error);
-
-    console.log("DATUM:", datum);
   }, [datum]);
 
   useEffect(() => {
     if (!idNaloga) return;
 
-    getReportStatesById(idNaloga).then(setData).catch(console.error);
-  }, [idNaloga]);
+    (async () => {
+      try {
+        const [states, totalsRes, inv] = await Promise.all([
+          getReportStatesById(idNaloga),
+          getTotalPotrosnjaVagaAndPos(idNaloga),
+          getTotalsSinceLastInventoryReset(idNaloga),
+        ]);
 
-  useEffect(() => {
-    if (!idNaloga) return;
-
-    getTotalPotrosnjaVagaAndPos(idNaloga).then(setTotals).catch(console.error);
+        setData(states);
+        setTotals(totalsRes);
+        setSinceLastInventory(inv);
+      } catch (err) {
+        console.log("FETCH ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [idNaloga]);
 
   console.log("TOTALS IN DailyReportPreview:", totals);
@@ -105,7 +122,11 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
             </div>
 
             {/* CONTENT */}
-            <ReportDetails items={data.items} totals={totals} />
+            <ReportDetails
+              items={data.items}
+              totals={totals}
+              sinceLastInventory={sinceLastInventory}
+            />
           </div>
         </div>
       )}

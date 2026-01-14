@@ -1,8 +1,10 @@
-function ReportDetails({ items, totals }) {
+function ReportDetails({ items, totals, sinceLastInventory }) {
   if (!items || items.length === 0) return null;
 
   console.log("DTO STAVKE:", items);
   console.log("POTROSNJA VAGA I POS:", totals);
+
+  console.log("sinceLastInventory PROP:", sinceLastInventory);
 
   return (
     <div className="mt-6">
@@ -98,7 +100,7 @@ function ReportDetails({ items, totals }) {
         <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-300">
-              UKUPNA POTROŠNJA
+              UKUPNA DNEVNA POTROŠNJA
             </h3>
             <span className="text-xs text-gray-400">
               Nalog: {totals?.idNaloga ?? "—"}
@@ -125,6 +127,38 @@ function ReportDetails({ items, totals }) {
             </div>
           </div>
         </div>
+        {sinceLastInventory && (
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-300">
+                OD POSLEDNJEG POPISA
+              </h3>
+              <span className="text-xs text-gray-400">
+                Nalog: {sinceLastInventory?.idNaloga ?? "—"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="rounded-md bg-black/20 p-3">
+                <div className="text-xs text-gray-400 mb-1">Ukupno VAGA</div>
+                <div className="text-lg font-semibold text-blue-300">
+                  {Number(
+                    sinceLastInventory?.totalVagaFromInventoryPotrosnja ?? 0
+                  ).toFixed(2)}
+                </div>
+              </div>
+
+              <div className="rounded-md bg-black/20 p-3">
+                <div className="text-xs text-gray-400 mb-1">Ukupno POS</div>
+                <div className="text-lg font-semibold  text-green-300">
+                  {Number(
+                    sinceLastInventory?.totalPosFromInventoryPotrosnja ?? 0
+                  ).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== DESKTOP / TABLET (tabela) ===== */}
@@ -240,6 +274,44 @@ function ReportDetails({ items, totals }) {
             </div>
           </div>
         </div>
+        {sinceLastInventory && (
+          <div className="border-t border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-300">
+                OD POSLEDNJEG POPISA
+              </h3>
+              <span className="text-xs text-gray-400">
+                Nalog: {sinceLastInventory?.idNaloga ?? "—"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              {/* VAGA */}
+              <div className="col-span-2 rounded-md bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                  Ukupno VAGA
+                </div>
+                <div className="text-2xl font-semibold text-blue-300">
+                  {Number(
+                    sinceLastInventory?.totalVagaFromInventoryPotrosnja ?? 0
+                  ).toFixed(2)}
+                </div>
+              </div>
+
+              {/* POS */}
+              <div className="col-span-2 rounded-md bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                  Ukupno POS
+                </div>
+                <div className="text-2xl font-semibold text-green-300">
+                  {Number(
+                    sinceLastInventory?.totalPosFromInventoryPotrosnja ?? 0
+                  ).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

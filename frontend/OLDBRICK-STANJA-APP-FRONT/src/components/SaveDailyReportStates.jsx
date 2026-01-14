@@ -15,7 +15,7 @@ import {
 import ProsutoKantaForm from "./ProsutoKantaForm";
 import AddQuantityBatch from "./AddQuantityBatch";
 
-function SaveDailyReportStates({ idNaloga }) {
+function SaveDailyReportStates({ idNaloga, onDelete }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [values, setValues] = useState({});
@@ -94,14 +94,14 @@ function SaveDailyReportStates({ idNaloga }) {
     const ok = window.confirm(
       "Da li ste sigurni da želite da obrišete ovaj nalog?"
     );
-
     if (!ok) return;
 
     try {
-      await deleteDailyReport(idNaloga);
+      await onDelete(idNaloga);
       setMsg("Nalog je obrisan uspešno!");
     } catch (error) {
-      setMsg("Greška pri brisanju naloga", error);
+      console.error(error);
+      setMsg("Greška pri brisanju naloga.");
     }
   }
   async function handleUpdateSave() {
@@ -308,6 +308,7 @@ function SaveDailyReportStates({ idNaloga }) {
               >
                 Obriši unose
               </button>
+
               {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   {/* overlay */}
