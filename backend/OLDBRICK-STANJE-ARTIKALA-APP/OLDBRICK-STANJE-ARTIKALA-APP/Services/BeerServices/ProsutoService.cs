@@ -18,6 +18,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         public async Task<ProsutoResultDto> CalculateAndSaveAsync(int idNaloga)
         {
             Console.WriteLine("[OB_DEBUG] CalculateAndSaveAsync HIT");
+
             // 1) Ucitaj nalog (TAB2)
             var report = await _context.DailyReports
                 .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
@@ -41,25 +42,68 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
             var beerIds = states.Select(x => x.IdPiva).Distinct().ToList();
 
-            var CountType = await _context.Beers.Where(b => beerIds.Contains(b.Id)).ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
+            var CountType = await _context.Beers
+                .Where(b => beerIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
 
+            // =========================
+            // NEW 0) Dopuna snapshot-i za DANAS (ako postoje) -> najvisi prioritet za start
+            // =========================
+            var snapRows = await _context.DailyRestockSnapshots
+                .AsNoTracking()
+                .Where(x => x.IdNaloga == idNaloga && beerIds.Contains(x.IdPiva))
+                .Select(x => new
+                {
+                    x.IdPiva,
+                    x.IzmerenoSnapshot,
+                    x.PosSnapshot,
+                    x.UpdatedAt,
+                    x.CreatedAt
+                })
+                .ToListAsync();
 
+            var snapByBeerId = snapRows
+                .GroupBy(x => x.IdPiva)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var last = g.OrderByDescending(z => z.UpdatedAt)
+                                    .ThenByDescending(z => z.CreatedAt)
+                                    .First();
+                        return (Vaga: last.IzmerenoSnapshot, Pos: last.PosSnapshot);
+                    });
+
+            // =========================
+            // 1) Poslednji popis PRE ovog dana (baseline)
+            // =========================
             var lastReset = await _context.InventoryResets
-                            .Where(r => DateOnly.FromDateTime(r.DatumPopisa.Date) < report.Datum)
-                            .OrderByDescending(r => r.DatumPopisa)
-                            .FirstOrDefaultAsync();
+                .AsNoTracking()
+                .Where(r => DateOnly.FromDateTime(r.DatumPopisa.Date) < report.Datum)
+                .OrderByDescending(r => r.DatumPopisa)
+                .ThenByDescending(r => r.Id)
+                .FirstOrDefaultAsync();
 
             DateOnly? resetDate = lastReset != null
-                                    ? DateOnly.FromDateTime(lastReset.DatumPopisa.Date)
-                                    : null;
+                ? DateOnly.FromDateTime(lastReset.DatumPopisa.Date)
+                : null;
 
             Dictionary<int, (float izmereno, float pos)> resetMap = new();
 
             if (lastReset != null)
             {
+                // Ako se desi vise itema po pivu, uzmi poslednji po Id
                 resetMap = await _context.InventoryResetItems
-                    .Where(i => i.InventoryResetId == lastReset.Id)
-                    .ToDictionaryAsync(i => i.IdPiva, i => (i.IzmerenoSnapshot, i.PosSnapshot));
+                    .AsNoTracking()
+                    .Where(i => i.InventoryResetId == lastReset.Id && beerIds.Contains(i.IdPiva))
+                    .GroupBy(i => i.IdPiva)
+                    .Select(g => new
+                    {
+                        IdPiva = g.Key,
+                        Vaga = g.OrderByDescending(x => x.Id).Select(x => x.IzmerenoSnapshot).FirstOrDefault(),
+                        Pos = g.OrderByDescending(x => x.Id).Select(x => x.PosSnapshot).FirstOrDefault()
+                    })
+                    .ToDictionaryAsync(x => x.IdPiva, x => (x.Vaga, x.Pos));
             }
 
             float sumNeg = 0;
@@ -67,46 +111,59 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
             foreach (var s in states)
             {
-                var prevQuery = _context.DailyBeerStates
-                            .Join(_context.DailyReports,
-                                st => st.IdNaloga,
-                                dr => dr.IdNaloga,
-                                (st, dr) => new { st, dr })
-                            .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum);
-
-                if (resetDate != null)
-                {
-                    prevQuery = prevQuery.Where(x => x.dr.Datum > resetDate.Value);
-                }
-
-                var prev = await prevQuery
-                    .OrderByDescending(x => x.dr.Datum)
-                    .Select(x => x.st)
-                    .FirstOrDefaultAsync();
-
-                Console.WriteLine("===== CALC DEBUG START =====");
-                Console.WriteLine($"[OB_DEBUG] Pivo {s.IdPiva}: prev={(prev != null ? "YES" : "NO")}," +
-                    $" reset={(resetMap.ContainsKey(s.IdPiva) ? "YES" : "NO")}");
-
-                Console.WriteLine("===== CALC DEBUG END =====");
-
                 float startVaga;
                 float startPos;
 
-                if (prev != null)
+                // =========================
+                // NEW PRIORITET:
+                // Ako postoji dopuna snapshot za DANAS -> start je iz snapshot-a
+                // =========================
+                if (snapByBeerId.TryGetValue(s.IdPiva, out var snapToday))
                 {
-                    startVaga = prev.Izmereno;
-                    startPos = prev.StanjeUProgramu;
-                }
-                else if (resetMap.TryGetValue(s.IdPiva, out var snap))
-                {
-                    startVaga = snap.izmereno;
-                    startPos = snap.pos;
+                    startVaga = snapToday.Vaga;
+                    startPos = snapToday.Pos;
                 }
                 else
                 {
-                    startVaga = s.Izmereno;
-                    startPos = s.StanjeUProgramu;
+                    // Postojeca logika: prev iz TAB3 (posle popisa), pa resetMap, pa fallback
+                    var prevQuery = _context.DailyBeerStates
+                        .Join(_context.DailyReports,
+                            st => st.IdNaloga,
+                            dr => dr.IdNaloga,
+                            (st, dr) => new { st, dr })
+                        .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum);
+
+                    if (resetDate != null)
+                    {
+                        // sve pre (i ukljucujuci) datum popisa ignorisi
+                        prevQuery = prevQuery.Where(x => x.dr.Datum > resetDate.Value);
+                    }
+
+                    var prev = await prevQuery
+                        .OrderByDescending(x => x.dr.Datum)
+                        .Select(x => x.st)
+                        .FirstOrDefaultAsync();
+
+                    Console.WriteLine("===== CALC DEBUG START =====");
+                    Console.WriteLine($"[OB_DEBUG] Pivo {s.IdPiva}: prev={(prev != null ? "YES" : "NO")}," +
+                        $" reset={(resetMap.ContainsKey(s.IdPiva) ? "YES" : "NO")} snap={(snapByBeerId.ContainsKey(s.IdPiva) ? "YES" : "NO")}");
+                    Console.WriteLine("===== CALC DEBUG END =====");
+
+                    if (prev != null)
+                    {
+                        startVaga = prev.Izmereno;
+                        startPos = prev.StanjeUProgramu;
+                    }
+                    else if (resetMap.TryGetValue(s.IdPiva, out var snap))
+                    {
+                        startVaga = snap.izmereno;
+                        startPos = snap.pos;
+                    }
+                    else
+                    {
+                        startVaga = s.Izmereno;
+                        startPos = s.StanjeUProgramu;
+                    }
                 }
 
                 var endVaga = s.Izmereno;
@@ -137,21 +194,16 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
                 var includeInProsuto = !string.Equals(tipMerenja, "Kafa", StringComparison.OrdinalIgnoreCase);
 
-
                 if (includeInProsuto)
                 {
                     totalvagaPotrosnja += vagaPotrosnja;
                     totalposPotrosnja += posPotrosnja;
 
-                    //  NETO SUMA: prvo saberi negativne i pozitivne posebno
-                    if (odstupanje < 0) sumNeg += odstupanje;   // ostaje negativno
-                    else sumPos += odstupanje;                  // pozitivno
-
+                    if (odstupanje < 0) sumNeg += odstupanje;
+                    else sumPos += odstupanje;
 
                     prosutoSum = sumNeg + sumPos;
                 }
-
-
 
                 result.Items.Add(new BeerCalcResultDto
                 {
@@ -168,14 +220,17 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     Odstupanje = odstupanje
                 });
             }
+
             report.TotalProsuto = MathF.Round(prosutoSum, 2);
             report.TotalPotrosenoVaga = MathF.Round(totalvagaPotrosnja, 2);
             report.TotalPotrosenoProgram = totalposPotrosnja;
+
             await _context.SaveChangesAsync();
 
             result.TotalProsuto = MathF.Round(prosutoSum, 2);
             return result;
         }
+
 
 
         public async Task UpdateProsutoKantaAsync(int idNaloga, float prosutoKanta)
@@ -283,21 +338,45 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
             var items = new List<BeerCalcResultDto>();
 
+            var todaySnapshots = await _context.DailyRestockSnapshots
+                                        .AsNoTracking()
+                                        .Where(x => x.IdNaloga == idNaloga)
+                                        .GroupBy(x => x.IdPiva)
+                                        .Select(g => g.OrderByDescending(x => x.UpdatedAt)
+                                                      .ThenByDescending(x => x.CreatedAt)
+                                                      .First())
+                                        .ToListAsync();
+
+            var snapByBeerId = todaySnapshots.ToDictionary(
+                                    x => x.IdPiva,
+                                    x => (x.IzmerenoSnapshot, x.PosSnapshot)
+                                );
+
             foreach (var current in currentStates)
             {
-                restockArticles.TryGetValue(current.IdPiva, out var addedDec);
-                var added = Convert.ToSingle(addedDec);
+               
 
                 float vagaStart;
                 float posStart;
 
-                if (resetMap.TryGetValue(current.IdPiva, out var snap))
+                // 1) Ako postoji snapshot za DANAS -> to je start (i dopuna je vec unutra)
+                if (snapByBeerId.TryGetValue(current.IdPiva, out var snapToday))
                 {
+                    vagaStart = snapToday.IzmerenoSnapshot;
+                    posStart = snapToday.PosSnapshot;
+
+                    // dopuna je vec u snapshot-u, ne dodajem je drugi put
+                    
+                }
+                else if (resetMap.TryGetValue(current.IdPiva, out var snap))
+                {
+                    // 2) baseline iz popisa (pre dana)
                     vagaStart = snap.VagaStart;
                     posStart = snap.PosStart;
                 }
                 else
                 {
+                    // 3) baseline iz prethodnog TAB3
                     var prev = await _context.DailyBeerStates
                         .Join(_context.DailyReports,
                             st => st.IdNaloga,
@@ -325,13 +404,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
                 if (tip == "bure" || tip == "kafa")
                 {
-                    vagaPotrosnja = (vagaStart + added) - vagaEnd;
-                    posPotrosnja = (posStart + added) - posEnd;
+                    vagaPotrosnja = vagaStart - vagaEnd;
+                    posPotrosnja = posStart - posEnd;
                 }
                 else if (tip == "kesa")
                 {
                     vagaPotrosnja = vagaEnd - vagaStart;
-                    posPotrosnja = (posStart + added) - posEnd;
+                    posPotrosnja = posStart - posEnd;
                 }
                 else
                 {
@@ -506,42 +585,114 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             float totalposPotrosnja = 0;
 
             var beerIds = states.Select(x => x.IdPiva).Distinct().ToList();
+
             var countType = await _context.Beers
                 .Where(b => beerIds.Contains(b.Id))
                 .ToDictionaryAsync(b => b.Id, b => b.TipMerenja);
+
+            // =========================
+            // NEW 1) Dopuna snapshot-i za DANAS (ako postoje)
+            // =========================
+            var snapRows = await _context.DailyRestockSnapshots
+                .AsNoTracking()
+                .Where(x => x.IdNaloga == idNaloga && beerIds.Contains(x.IdPiva))
+                .Select(x => new { x.IdPiva, x.IzmerenoSnapshot, x.PosSnapshot, x.UpdatedAt, x.CreatedAt })
+                .ToListAsync();
+
+            var snapByBeerId = snapRows
+                .GroupBy(x => x.IdPiva)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var last = g.OrderByDescending(z => z.UpdatedAt).ThenByDescending(z => z.CreatedAt).First();
+                        return (Vaga: last.IzmerenoSnapshot, Pos: last.PosSnapshot);
+                    });
+
+            // =========================
+            // NEW 2) Poslednji popis PRE ovog dana kao baseline
+            // =========================
+            var reportDate = report.Datum; // DateOnly
+            var reportStartUtc = new DateTime(reportDate.Year, reportDate.Month, reportDate.Day, 0, 0, 0, DateTimeKind.Utc);
+
+            var lastRestart = await _context.InventoryResets
+                .AsNoTracking()
+                .Where(x => x.DatumPopisa < reportStartUtc)
+                .OrderByDescending(x => x.DatumPopisa)
+                .ThenByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            Dictionary<int, (float VagaStart, float PosStart)> resetMap = new();
+
+            if (lastRestart != null)
+            {
+                resetMap = await _context.InventoryResetItems
+                    .AsNoTracking()
+                    .Where(x => x.InventoryResetId == lastRestart.Id && beerIds.Contains(x.IdPiva))
+                    .GroupBy(x => x.IdPiva)
+                    .Select(g => new
+                    {
+                        IdPiva = g.Key,
+                        Vaga = g.OrderByDescending(i => i.Id).Select(i => i.IzmerenoSnapshot).FirstOrDefault(),
+                        Pos = g.OrderByDescending(i => i.Id).Select(i => i.PosSnapshot).FirstOrDefault()
+                    })
+                    .ToDictionaryAsync(
+                        x => x.IdPiva,
+                        x => (Convert.ToSingle(x.Vaga), Convert.ToSingle(x.Pos))
+                    );
+            }
 
             float sumNeg = 0;
             float sumPos = 0;
 
             foreach (var s in states)
             {
-                var prev = await _context.DailyBeerStates
-                    .Join(_context.DailyReports,
-                        st => st.IdNaloga,
-                        dr => dr.IdNaloga,
-                        (st, dr) => new { st, dr })
-                    .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum)
-                    .OrderByDescending(x => x.dr.Datum)
-                    .Select(x => x.st)
-                    .FirstOrDefaultAsync();
+               
+                float startVaga;
+                float startPos;
 
-                var startVaga = prev?.Izmereno ?? s.Izmereno;
-                var startPos = prev?.StanjeUProgramu ?? s.StanjeUProgramu;
+                if (snapByBeerId.TryGetValue(s.IdPiva, out var snap))
+                {
+                    startVaga = snap.Vaga;
+                    startPos = snap.Pos;
+                }
+                else if (resetMap.TryGetValue(s.IdPiva, out var reset))
+                {
+                    startVaga = reset.VagaStart;
+                    startPos = reset.PosStart;
+                }
+                else
+                {
+                    var prev = await _context.DailyBeerStates
+                        .Join(_context.DailyReports,
+                            st => st.IdNaloga,
+                            dr => dr.IdNaloga,
+                            (st, dr) => new { st, dr })
+                        .Where(x => x.st.IdPiva == s.IdPiva && x.dr.Datum < report.Datum)
+                        .OrderByDescending(x => x.dr.Datum)
+                        .Select(x => x.st)
+                        .FirstOrDefaultAsync();
+
+                    startVaga = prev?.Izmereno ?? s.Izmereno;
+                    startPos = prev?.StanjeUProgramu ?? s.StanjeUProgramu;
+                }
 
                 var endVaga = s.Izmereno;
                 var endPos = s.StanjeUProgramu;
 
-                var tipMerenja = countType[s.IdPiva];
+                if (!countType.TryGetValue(s.IdPiva, out var tipMerenja))
+                    throw new ArgumentException($"Nepoznat tip merenja za pivo ID {s.IdPiva}");
 
                 float vagaPotrosnja;
                 float posPotrosnja;
 
-                if (tipMerenja == "Bure" || tipMerenja == "Kafa")
+                if (string.Equals(tipMerenja, "Bure", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tipMerenja, "Kafa", StringComparison.OrdinalIgnoreCase))
                 {
                     vagaPotrosnja = startVaga - endVaga;
                     posPotrosnja = startPos - endPos;
                 }
-                else if (tipMerenja == "Kesa")
+                else if (string.Equals(tipMerenja, "Kesa", StringComparison.OrdinalIgnoreCase))
                 {
                     vagaPotrosnja = endVaga - startVaga;
                     posPotrosnja = startPos - endPos;
@@ -582,6 +733,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
             return (result, totalvagaPotrosnja, totalposPotrosnja);
         }
+
 
 
 

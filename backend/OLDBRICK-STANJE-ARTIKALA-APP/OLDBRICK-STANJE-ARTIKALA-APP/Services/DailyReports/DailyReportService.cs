@@ -309,9 +309,57 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
             if (dayBeforeReport == null)
                 return new List<DayBeforeStateDto>();
 
-            var prevDate = dayBeforeReport.Datum; // DateOnly
+            var prevDate = dayBeforeReport.Datum;     // DateOnly
+            var prevIdNaloga = dayBeforeReport.IdNaloga;
 
-            // Provera: da li je BIO POPIS na taj prethodni datum?
+            // 0) NOVO: snapshot dopune za prethodni nalog -> to je "juce stanje"
+            var snapRows = await _context.DailyRestockSnapshots
+                        .AsNoTracking()
+                        .Where(x => x.IdNaloga == idNaloga && x.SourceIdNaloga == prevIdNaloga)
+                        .Select(x => new
+                        {
+                            x.IdPiva,
+                            x.IzmerenoSnapshot,
+                         x.PosSnapshot,
+                            x.UpdatedAt,
+                            x.CreatedAt
+                        })
+                        .ToListAsync();
+
+            // Ako ima snapshot-a, uzmi najnoviji po pivu (u memoriji)
+            if (snapRows.Count > 0)
+            {
+                var latestByBeer = snapRows
+                    .GroupBy(x => x.IdPiva)
+                    .Select(g => g
+                        .OrderByDescending(x => x.UpdatedAt)
+                        .ThenByDescending(x => x.CreatedAt)
+                        .First())
+                    .ToList();
+
+                var beerIds = latestByBeer.Select(x => x.IdPiva).Distinct().ToList();
+
+                var beers = await _context.Beers
+                    .AsNoTracking()
+                    .Where(b => beerIds.Contains(b.Id))
+                    .ToDictionaryAsync(b => b.Id, b => new { b.NazivPiva, b.TipMerenja });
+
+                var snapshotStates = latestByBeer
+                    .Select(x => new DayBeforeStateDto
+                    {
+                        IdPiva = x.IdPiva,
+                        NazivPiva = beers.TryGetValue(x.IdPiva, out var b) ? b.NazivPiva : "",
+                        TipMerenja = beers.TryGetValue(x.IdPiva, out var b2) ? b2.TipMerenja : "",
+                        PrevVaga = x.IzmerenoSnapshot,
+                        PrevPos = x.PosSnapshot
+                    })
+                    .ToList();
+
+                return snapshotStates;
+            }
+
+
+            // 1) Provera: da li je BIO POPIS na taj prethodni datum?
             // DatumPopisa je timestamptz => pravimo UTC range za ceo dan
             var prevStartUtc = new DateTime(prevDate.Year, prevDate.Month, prevDate.Day, 0, 0, 0, DateTimeKind.Utc);
             var prevEndUtc = new DateTime(prevDate.Year, prevDate.Month, prevDate.Day, 23, 59, 59, 999, DateTimeKind.Utc);
@@ -345,9 +393,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
                 return snapshot;
             }
 
-            // Inace: klasika TAB3 za prethodni nalog
-            var prevIdNaloga = dayBeforeReport.IdNaloga;
-
+            // 2) Inace: klasika TAB3 za prethodni nalog
             var result = await _context.DailyBeerStates
                 .AsNoTracking()
                 .Where(s => s.IdNaloga == prevIdNaloga)
@@ -368,6 +414,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
         }
 
 
+
         public async Task<PotrosnjaSinceLastInventoryDto> GetTotalsSinceLastInventoryAsync(int idNaloga)
         {
             if (idNaloga <= 0) throw new ArgumentException("IdNaloga nije validan.");
@@ -381,10 +428,19 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
             if (to == null)
                 throw new ArgumentException("Nalog ne postoji.");
 
+            var toDate = to.Value;
+            var toStartUtc = DateTime.SpecifyKind(
+                                 toDate.ToDateTime(TimeOnly.MinValue),
+                                 DateTimeKind.Utc
+                                );
+
             // 2) poslednji popis
             var lastReset = await _context.InventoryResets
-                .OrderByDescending(x => x.DatumPopisa)
-                .FirstOrDefaultAsync();
+                                  .AsNoTracking()
+                                  .Where(x => x.DatumPopisa < toStartUtc)
+                                  .OrderByDescending(x => x.DatumPopisa)
+                                  .ThenByDescending(x => x.Id)
+                                  .FirstOrDefaultAsync();
 
             // 3) "from" = sutradan posle popisa (popis uvece vecinski)
             DateOnly from;

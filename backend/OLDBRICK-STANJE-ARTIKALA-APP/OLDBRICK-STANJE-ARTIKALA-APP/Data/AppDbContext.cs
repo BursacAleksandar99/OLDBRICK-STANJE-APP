@@ -22,6 +22,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
 
         public DbSet<InventoryResetItem> InventoryResetItems => Set<InventoryResetItem>();
 
+        public DbSet<DailyRestockSnapshot> DailyRestockSnapshots => Set<DailyRestockSnapshot>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Users>(e =>
@@ -132,6 +134,47 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
                 e.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()")
                  .ValueGeneratedOnAdd();
 
+            });
+
+            modelBuilder.Entity<DailyRestockSnapshot>(e =>
+            {
+                e.ToTable("daily_restock_snapshots");
+
+                e.HasKey(e => e.Id);
+
+                e.Property(e => e.Id)
+                    .HasColumnName("id");
+
+                e.Property(e => e.IdNaloga)
+                    .HasColumnName("id_naloga");
+
+                e.Property(e => e.IdPiva)
+                    .HasColumnName("id_piva");
+
+                e.Property(e => e.AddedQuantity)
+                    .HasColumnName("added_quantity");
+
+                e.Property(e => e.IzmerenoSnapshot)
+                    .HasColumnName("izmereno_snapshot");
+
+                e.Property(e => e.PosSnapshot)
+                    .HasColumnName("pos_snapshot");
+
+                e.Property(e => e.SourceDate)
+                    .HasColumnName("source_date");
+
+                e.Property(e => e.SourceIdNaloga)
+                    .HasColumnName("source_id_naloga");
+
+                e.Property(e => e.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasDefaultValueSql("now()")
+                    .ValueGeneratedOnAdd();
+
+                e.Property(e => e.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasDefaultValueSql("now()")
+                    .ValueGeneratedOnAddOrUpdate();
             });
         }
     }
