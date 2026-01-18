@@ -49,7 +49,7 @@ function AddQuantityBatch({ idNaloga, articles = [], onUpdated }) {
       if (payload.length === 0) {
         return setMsg("Nema unetih količina.");
       }
-      const idNalogaDayBefore = idNaloga - 1;
+      const idNalogaDayBefore = idNaloga;
 
       setLoading(true);
       const updated = await addMoreBeerQuantity(idNalogaDayBefore, payload);

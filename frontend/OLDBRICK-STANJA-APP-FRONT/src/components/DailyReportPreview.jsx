@@ -58,7 +58,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
   console.log("TOTALS IN DailyReportPreview:", totals);
 
   if (!data) {
-    return <div>Loading...</div>;
+    return <div>Podaci se učitavaju...</div>;
   }
 
   return (
@@ -67,7 +67,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
         Manjak vaga - potrošnja POS:{" "}
         <span
           className={`font-semibold ${
-            data.totalProsuto < 0 ? "text-green-400" : "text-red-400"
+            data.totalProsuto < 0 ? "text-red-400" : "text-green-400"
           }`}
         >
           {data.totalProsuto === 0 ? data.totalProsuto : `${data.totalProsuto}`}
