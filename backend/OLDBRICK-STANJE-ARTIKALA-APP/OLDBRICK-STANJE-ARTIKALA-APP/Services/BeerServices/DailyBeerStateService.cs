@@ -366,6 +366,11 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                     .ToListAsync();
                 _context.DailyRestockSnapshots.RemoveRange(snaps);
 
+                var shortages = await _context.DailyBeerShortages
+                    .Where(x => x.IdNaloga == idNaloga)
+                    .ToListAsync();
+                _context.DailyBeerShortages.RemoveRange(shortages);
+
                 // Inventory resets + items (po danu naloga)
                 var dayStartUtc = DateTime.SpecifyKind(report.Datum.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
                 var nextDayStartUtc = DateTime.SpecifyKind(report.Datum.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);

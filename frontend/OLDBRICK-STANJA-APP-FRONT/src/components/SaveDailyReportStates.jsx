@@ -11,6 +11,7 @@ import {
   updateDailyReportStatusAndCalculate,
   updateProsutoKantaAndRecalculate,
   getDayBeforeStates,
+  saveDailyBeerShortage,
 } from "../api/helpers";
 import ProsutoKantaForm from "./ProsutoKantaForm";
 import AddQuantityBatch from "./AddQuantityBatch";
@@ -105,6 +106,10 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
       console.log("[SAVE] calculateProsutoRazlika start");
       await calculateProsutoRazlika(idNaloga);
       console.log("[SAVE] calculateProsutoRazlika OK");
+
+      console.log("[SAVE] saveDailyBeerShortage start");
+      await saveDailyBeerShortage(idNaloga);
+      console.log("[SAVE] saveDailyBeerShortage OK");
 
       setStatusType("SUCCESS");
       setStatusMessage("SAČUVANO USPEŠNO");

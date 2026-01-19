@@ -24,6 +24,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
 
         public DbSet<DailyRestockSnapshot> DailyRestockSnapshots => Set<DailyRestockSnapshot>();
 
+        public DbSet<DailyBeerShortage> DailyBeerShortages => Set<DailyBeerShortage>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Users>(e =>
@@ -175,6 +177,32 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Data
                     .HasColumnName("updated_at")
                     .HasDefaultValueSql("now()")
                     .ValueGeneratedOnAddOrUpdate();
+            });
+            modelBuilder.Entity<DailyBeerShortage>(e =>
+            {
+                e.ToTable("daily_beer_shortage");
+
+                e.HasKey(e => e.Id);
+
+                e.Property(e => e.Id)
+                    .HasColumnName("id");
+
+                e.Property(e => e.IdNaloga)
+                    .HasColumnName("id_naloga");
+
+                e.Property(e => e.Datum)
+                    .HasColumnName("datum");
+
+                e.Property(e => e.IdPiva)
+                    .HasColumnName("id_piva");
+
+                e.Property(e => e.Manjak)
+                    .HasColumnName("manjak");
+
+                e.Property(e => e.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasDefaultValueSql("now()")
+                    .ValueGeneratedOnAdd();
             });
         }
     }

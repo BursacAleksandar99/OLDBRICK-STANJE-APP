@@ -51,5 +51,21 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             var allBeers = await _beerService.GetAllBeersAsync();
             return Ok(allBeers);
         }
+
+        [HttpPost("{idNaloga:int}/save-daily-beer-shortage")]
+        public async Task<IActionResult> SaveDailyBeerShortage(int idNaloga)
+        {
+            await _beerService.SaveDailyBeerShortageAsync(idNaloga);
+            return Ok(new { message = "Manjak po pivu je uspešno sačuvan." });
+        }
+
+        [HttpGet("{idNaloga:int}/beer-shortage-since-last-inventory")]
+        public async Task<IActionResult> GetBeerShortageSinceLastInventory(int idNaloga)
+        {
+            var result = await _beerService
+                .GetBeerShortageTotalsSinceLastInventoryAsync(idNaloga);
+
+            return Ok(result);
+        }
     }
 }

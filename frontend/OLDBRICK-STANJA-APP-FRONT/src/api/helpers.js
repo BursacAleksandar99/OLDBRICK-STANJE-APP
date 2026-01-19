@@ -177,5 +177,21 @@ export async function getKesaItemsForDate(datum){
     return data;
 }
 
+export async function getBeerShortageTotalsForNalog(idNaloga) {
+  const { data } = await httpClient.get(
+    `/api/Beers/${idNaloga}/beer-shortage-since-last-inventory`
+  );
+
+  return data;
+}
+
+export async function saveDailyBeerShortage(idNaloga) {
+  const { data } = await httpClient.post(
+    `/api/Beers/${idNaloga}/save-daily-beer-shortage`
+  );
+
+  return data;
+}
+
 
 

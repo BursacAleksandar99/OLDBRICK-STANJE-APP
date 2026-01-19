@@ -9,5 +9,8 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
 
         Task<Beer> GetByIdAsync(int id);
         Task<List<Beer>> GetAllBeersAsync();
+
+        Task SaveDailyBeerShortageAsync(int idNaloga);
+        Task<List<BeerShortageSumDto>> GetBeerShortageTotalsSinceLastInventoryAsync(int idNaloga);
     }
 }

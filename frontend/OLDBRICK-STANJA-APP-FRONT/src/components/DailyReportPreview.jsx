@@ -5,6 +5,7 @@ import {
   getTotalPotrosnjaVagaAndPos,
   getDailyReportByDateWithBiggerOutput,
   getTotalsSinceLastInventoryReset,
+  getBeerShortageTotalsForNalog,
 } from "../api/helpers";
 import ReportDetails from "./ReportDetails";
 
@@ -15,6 +16,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
   const [totals, setTotals] = useState(null);
   const [sinceLastInventory, setSinceLastInventory] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [shortagePerBeer, setShortagePerBeer] = useState([]);
 
   useEffect(() => {
     if (!datum) return;
@@ -23,6 +25,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
     setData(null);
     setTotals(null);
     setSinceLastInventory(null);
+    setShortagePerBeer([]);
     setIdNaloga(null);
 
     getDailyReportByDateWithBiggerOutput(datum)
@@ -36,26 +39,39 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
   useEffect(() => {
     if (!idNaloga) return;
 
+    let cancelled = false;
+
     (async () => {
       try {
-        const [states, totalsRes, inv] = await Promise.all([
+        const [states, totalsRes, inv, shortage] = await Promise.all([
           getReportStatesById(idNaloga),
           getTotalPotrosnjaVagaAndPos(idNaloga),
           getTotalsSinceLastInventoryReset(idNaloga),
+          getBeerShortageTotalsForNalog(idNaloga),
         ]);
+
+        if (cancelled) return;
 
         setData(states);
         setTotals(totalsRes);
         setSinceLastInventory(inv);
+        setShortagePerBeer(shortage || []);
       } catch (err) {
+        if (cancelled) return;
         console.log("FETCH ERROR:", err);
+        setShortagePerBeer([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [idNaloga]);
 
   console.log("TOTALS IN DailyReportPreview:", totals);
+  console.log("SHORTAGE PER BEER:", shortagePerBeer);
 
   if (!data) {
     return <div>Loading...</div>;
@@ -126,6 +142,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
               items={data.items}
               totals={totals}
               sinceLastInventory={sinceLastInventory}
+              shortagePerBeer={shortagePerBeer}
             />
           </div>
         </div>

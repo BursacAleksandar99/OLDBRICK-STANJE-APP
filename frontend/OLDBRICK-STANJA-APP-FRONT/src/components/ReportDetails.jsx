@@ -1,4 +1,4 @@
-function ReportDetails({ items, totals, sinceLastInventory }) {
+function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
   if (!items || items.length === 0) return null;
 
   console.log("DTO STAVKE:", items);
@@ -6,19 +6,30 @@ function ReportDetails({ items, totals, sinceLastInventory }) {
 
   console.log("sinceLastInventory PROP:", sinceLastInventory);
 
+  const shortageByBeerId = new Map(
+    (shortagePerBeer ?? []).map((s) => [s.idPiva, s.totalManjak])
+  );
+
+  const shortageClass = (val) => {
+    if (val === 0) return "text-yellow-400";
+    if (val < 0) return "text-red-400";
+    return "text-green-400";
+  };
+
   return (
     <div className="mt-6">
       {/* ===== MOBILE (kartice) ===== */}
       <div className="md:hidden space-y-3">
         {items.map((x) => {
           const isKesa = x.tipMerenja === "kesa";
+          const shortageVal = Number(shortageByBeerId.get(x.idPiva) ?? 0);
 
           return (
             <div
               key={x.idPiva}
               className="rounded-lg border border-white/10 bg-white/5 p-3"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-start justify-between mb-2 gap-3">
                 <div className="text-sm font-semibold flex items-center gap-2">
                   <span>{x.nazivPiva}</span>
                   <span
@@ -32,16 +43,26 @@ function ReportDetails({ items, totals, sinceLastInventory }) {
                   </span>
                 </div>
 
-                <div
-                  className={`text-sm font-semibold ${
-                    x.odstupanje === 0
-                      ? "text-yellow-400"
-                      : x.odstupanje < 0
-                      ? "text-red-400"
-                      : "text-green-400"
-                  }`}
-                >
-                  Odst: {Number(x.odstupanje).toFixed(2)}
+                <div className="text-right">
+                  <div
+                    className={`text-sm font-semibold ${
+                      x.odstupanje === 0
+                        ? "text-yellow-400"
+                        : x.odstupanje < 0
+                        ? "text-red-400"
+                        : "text-green-400"
+                    }`}
+                  >
+                    Odst: {Number(x.odstupanje).toFixed(2)}
+                  </div>
+
+                  <div
+                    className={`text-xs font-semibold ${shortageClass(
+                      shortageVal
+                    )}`}
+                  >
+                    Od popisa: {shortageVal.toFixed(2)}
+                  </div>
                 </div>
               </div>
 
@@ -97,6 +118,8 @@ function ReportDetails({ items, totals, sinceLastInventory }) {
             </div>
           );
         })}
+
+        {/* ===== MOBILE TOTALS ===== */}
         <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-300">
@@ -127,6 +150,7 @@ function ReportDetails({ items, totals, sinceLastInventory }) {
             </div>
           </div>
         </div>
+
         {sinceLastInventory && (
           <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between mb-3">
@@ -174,75 +198,94 @@ function ReportDetails({ items, totals, sinceLastInventory }) {
               <th className="px-3 py-2 text-right">POS end</th>
               <th className="px-3 py-2 text-right">POS pot.</th>
               <th className="px-3 py-2 text-right">Odst.</th>
+              <th className="px-3 py-2 text-right">Od popisa</th>
             </tr>
           </thead>
 
           <tbody>
-            {items.map((x) => (
-              <tr
-                key={x.idPiva}
-                className="border-t border-white/10 hover:bg-white/5 transition"
-              >
-                <td className="px-3 py-2 font-medium">{x.nazivPiva}</td>
-                <td className="px-3 py-2 text-right">
-                  <div className="text-xs text-gray-400">
-                    {x.tipMerenja == "kesa" ? "BROJAČ start" : "Vaga start"}
-                  </div>
-                  <div className="font-medium">
-                    {Number(x.vagaStart).toFixed(2)}
-                  </div>
-                </td>
+            {items.map((x) => {
+              const shortageVal = Number(shortageByBeerId.get(x.idPiva) ?? 0);
 
-                <td className="px-3 py-2 text-right">
-                  <div className="text-xs text-gray-400">
-                    {x.tipMerenja == "kesa" ? "BROJAČ end" : "Vaga end"}
-                  </div>
-                  <div className="font-medium">
-                    {Number(x.vagaEnd).toFixed(2)}
-                  </div>
-                </td>
-
-                <td className="px-3 py-2 text-right">
-                  <div className="text-xs text-gray-400">
-                    {x.tipMerenja === "kesa" ? "BROJAČ pot." : "Vaga pot."}
-                  </div>
-                  <div className="font-semibold">
-                    {Number(x.vagaPotrosnja).toFixed(2)}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="text-xs text-gray-400">Pos start</div>
-                  <div className="font-semibold">
-                    {Number(x.posStart).toFixed(2)}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="text-xs text-gray-400">Pos end</div>
-                  <div className="font-semibold">
-                    {Number(x.posEnd).toFixed(2)}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="text-xs text-gray-400">Pos pot.</div>
-                  <div className="font-semibold">
-                    {Number(x.posPotrosnja).toFixed(2)}
-                  </div>
-                </td>
-                <td
-                  className={`px-3 py-2 text-right font-semibold ${
-                    x.odstupanje === 0
-                      ? "text-yellow-400"
-                      : x.odstupanje < 0
-                      ? "text-red-400"
-                      : "text-green-400"
-                  }`}
+              return (
+                <tr
+                  key={x.idPiva}
+                  className="border-t border-white/10 hover:bg-white/5 transition"
                 >
-                  {Number(x.odstupanje).toFixed(2)}
-                </td>
-              </tr>
-            ))}
+                  <td className="px-3 py-2 font-medium">{x.nazivPiva}</td>
+
+                  <td className="px-3 py-2 text-right">
+                    <div className="text-xs text-gray-400">
+                      {x.tipMerenja == "kesa" ? "BROJAČ start" : "Vaga start"}
+                    </div>
+                    <div className="font-medium">
+                      {Number(x.vagaStart).toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-2 text-right">
+                    <div className="text-xs text-gray-400">
+                      {x.tipMerenja == "kesa" ? "BROJAČ end" : "Vaga end"}
+                    </div>
+                    <div className="font-medium">
+                      {Number(x.vagaEnd).toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-2 text-right">
+                    <div className="text-xs text-gray-400">
+                      {x.tipMerenja === "kesa" ? "BROJAČ pot." : "Vaga pot."}
+                    </div>
+                    <div className="font-semibold">
+                      {Number(x.vagaPotrosnja).toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-2 text-right">
+                    <div className="text-xs text-gray-400">Pos start</div>
+                    <div className="font-semibold">
+                      {Number(x.posStart).toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-2 text-right">
+                    <div className="text-xs text-gray-400">Pos end</div>
+                    <div className="font-semibold">
+                      {Number(x.posEnd).toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-2 text-right">
+                    <div className="text-xs text-gray-400">Pos pot.</div>
+                    <div className="font-semibold">
+                      {Number(x.posPotrosnja).toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td
+                    className={`px-3 py-2 text-right font-semibold ${
+                      x.odstupanje === 0
+                        ? "text-yellow-400"
+                        : x.odstupanje < 0
+                        ? "text-red-400"
+                        : "text-green-400"
+                    }`}
+                  >
+                    {Number(x.odstupanje).toFixed(2)}
+                  </td>
+
+                  <td
+                    className={`px-3 py-2 text-right font-semibold ${shortageClass(
+                      shortageVal
+                    )}`}
+                  >
+                    {shortageVal.toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+
         {/* ===== DESKTOP TOTALS ===== */}
         <div className="border-t border-white/10 bg-white/5 p-4">
           <div className="flex items-center justify-between mb-3">
@@ -274,6 +317,7 @@ function ReportDetails({ items, totals, sinceLastInventory }) {
             </div>
           </div>
         </div>
+
         {sinceLastInventory && (
           <div className="border-t border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between mb-4">
