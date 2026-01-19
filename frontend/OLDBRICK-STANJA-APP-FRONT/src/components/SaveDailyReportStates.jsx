@@ -29,6 +29,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
   const [mode, setMode] = useState("create");
   const [dayBeforeState, setDayBeforeState] = useState([]);
   const [prevMap, setPrevMap] = useState({});
+  const [statusPopupOpen, setStatusPopupOpen] = useState(false);
 
   function handleChange(idPiva, field, value) {
     setValues((prev) => ({
@@ -55,33 +56,68 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
   }
 
   async function handleSave() {
+    setLoading(true);
+    setStatusMessage("");
+
     try {
-      setLoading(true);
-      setStatusMessage("");
+      // 1) Payload za piva (filter da ne šalješ NaN)
+      const dataToSend = Object.entries(values)
+        .map(([idPiva, v]) => ({
+          beerId: Number(idPiva),
+          izmereno: v?.izmereno === "" ? null : Number(v?.izmereno),
+          stanjeUProgramu:
+            v?.stanjeUProgramu === "" ? null : Number(v?.stanjeUProgramu),
+        }))
+        .filter(
+          (x) =>
+            Number.isFinite(x.beerId) &&
+            (x.izmereno === null || Number.isFinite(x.izmereno)) &&
+            (x.stanjeUProgramu === null || Number.isFinite(x.stanjeUProgramu))
+        );
 
-      const dataToSend = Object.entries(values).map(([idPiva, v]) => ({
-        beerId: Number(idPiva),
-        izmereno: Number(v.izmereno),
-        stanjeUProgramu: Number(v.stanjeUProgramu),
-      }));
-
+      console.log("[SAVE] postDailyReportStates payload:", dataToSend);
       await postDailyReportStates(idNaloga, dataToSend);
+      console.log("[SAVE] postDailyReportStates OK");
 
-      const proKanta = Number(prosutoKanta);
+      // 2) Prosuto kanta (šalji samo ako je uneto)
+      const rawProsuto = (prosutoKanta ?? "").toString().trim();
+      if (rawProsuto !== "") {
+        const proKanta = Number(rawProsuto);
 
-      if (!Number.isNaN(proKanta)) {
+        if (!Number.isFinite(proKanta) || proKanta < 0) {
+          setStatusType("error");
+          setStatusMessage("Prosuto (kanta) mora biti broj >= 0.");
+          return;
+        }
+
+        console.log("[SAVE] putMeasuredProsuto:", proKanta);
         await putMeasuredProsuto(idNaloga, proKanta);
+        console.log("[SAVE] putMeasuredProsuto OK");
+      } else {
+        console.log("[SAVE] prosutoKanta preskočeno (prazno)");
       }
 
+      // 3) Calculate prosuto
+      console.log("[SAVE] calculateProsutoOnly start");
       await calculateProsutoOnly(idNaloga);
+      console.log("[SAVE] calculateProsutoOnly OK");
+
+      console.log("[SAVE] calculateProsutoRazlika start");
       await calculateProsutoRazlika(idNaloga);
-      await postCalculatedProsutoForEachBeer(idNaloga);
+      console.log("[SAVE] calculateProsutoRazlika OK");
 
       setStatusType("SUCCESS");
       setStatusMessage("SAČUVANO USPEŠNO");
+      setStatusPopupOpen(true);
       setTimeout(() => setStatusMessage(""), 3000);
     } catch (err) {
-      console.error(err);
+      // najbitnije: loguj server response ako postoji (axios)
+      console.error(
+        "[SAVE] FAILED:",
+        err?.response?.status,
+        err?.response?.data || err
+      );
+
       setStatusType("error");
       setStatusMessage("Greška pri čuvanju. Pokušaj ponovo.");
       setTimeout(() => setStatusMessage(""), 3000);
@@ -451,6 +487,32 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
              disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {mode === "edit" ? "Sačuvaj izmene" : "Sačuvaj stanje"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {statusPopupOpen && (
+        <div className="fixed inset-0 z-50  flex items-center justify-center">
+          {/* blur backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setStatusPopupOpen(false)}
+          />
+          {/* popup */}
+          <div className="relative z-10 w-full max-w-sm rounded-xl bg-[#111827] p-5 shadow-2xl border border-white/10">
+            <div className="text-white font-semibold text-base">
+              {statusType === "SUCCESS" ? "Uspeh ✅" : "Greška ❌"}
+            </div>
+
+            <div className="mt-2 text-white/80 text-sm">{statusMessage}</div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setStatusPopupOpen(false)}
+                className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15"
+              >
+                OK
               </button>
             </div>
           </div>

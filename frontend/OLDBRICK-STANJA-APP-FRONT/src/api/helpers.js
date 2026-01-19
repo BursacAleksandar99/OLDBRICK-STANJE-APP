@@ -10,10 +10,18 @@ export async function createNalogByDate(datum){
     return data;
 }
 
-export async function putMeasuredProsuto(idNaloga, prosutoKanta){
-    const {data} = (await httpClient.put(`api/dailyreports/${idNaloga}/prosuto-kanta`, {prosutoKanta})).data;
-    return data;
+// export async function putMeasuredProsuto(idNaloga, prosutoKanta){
+//     const {data} = (await httpClient.put(`api/dailyreports/${idNaloga}/prosuto-kanta`, {prosutoKanta})).data;
+//     return data;
+// }
+export async function putMeasuredProsuto(idNaloga, prosutoKanta) {
+  const { data } = await httpClient.put(
+    `api/dailyreports/${idNaloga}/prosuto-kanta`,
+    { prosutoKanta }
+  );
+  return data;
 }
+
 
 export async function calculateProsutoRazlika(idNaloga){
     const {data} = await httpClient.post(`api/dailyreports/${idNaloga}/calculate-prosuto-razlika`);

@@ -58,7 +58,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
   console.log("TOTALS IN DailyReportPreview:", totals);
 
   if (!data) {
-    return <div>Podaci se učitavaju...</div>;
+    return <div>Loading...</div>;
   }
 
   return (

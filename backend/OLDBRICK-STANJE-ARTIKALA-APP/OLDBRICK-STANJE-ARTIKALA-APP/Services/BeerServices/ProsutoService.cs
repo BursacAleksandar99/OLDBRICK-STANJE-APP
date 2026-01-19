@@ -466,7 +466,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             {
                 throw new ArgumentException("Izmereno prosuto (kanta) nije uneto.");
             }
-            if(report.TotalProsuto < 0)
+            if (report.TotalProsuto == null)
             {
                 throw new ArgumentException("Pokrenite prvo calculate_prosuto!");
             }
