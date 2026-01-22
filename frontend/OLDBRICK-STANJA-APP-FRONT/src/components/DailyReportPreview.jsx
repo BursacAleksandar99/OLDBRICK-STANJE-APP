@@ -9,7 +9,7 @@ import {
 } from "../api/helpers";
 import ReportDetails from "./ReportDetails";
 
-function DailyReportPreview({ datum, onidNalogaResolved }) {
+function DailyReportPreview({ datum, refreshKey, onidNalogaResolved }) {
   const [data, setData] = useState(null);
   const [idNaloga, setIdNaloga] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -68,7 +68,7 @@ function DailyReportPreview({ datum, onidNalogaResolved }) {
     return () => {
       cancelled = true;
     };
-  }, [idNaloga]);
+  }, [idNaloga, refreshKey]);
 
   console.log("TOTALS IN DailyReportPreview:", totals);
   console.log("SHORTAGE PER BEER:", shortagePerBeer);

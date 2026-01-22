@@ -7,7 +7,7 @@ function Navbar() {
   const navigate = useNavigate();
 
   const [hasToken, setHasToken] = useState(
-    () => !!localStorage.getItem("token")
+    () => !!localStorage.getItem("token"),
   );
 
   const location = useLocation();
@@ -66,7 +66,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/unesi"
+            to="/daily-reports"
             className={({ isActive }) =>
               [
                 "rounded-lg px-3 py-2 text-sm transition hover:bg-white/10",

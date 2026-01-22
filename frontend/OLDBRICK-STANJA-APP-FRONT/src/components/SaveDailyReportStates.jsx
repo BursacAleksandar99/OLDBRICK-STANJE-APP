@@ -12,11 +12,12 @@ import {
   updateProsutoKantaAndRecalculate,
   getDayBeforeStates,
   saveDailyBeerShortage,
+  getBeerShortageTotalsForNalog,
 } from "../api/helpers";
 import ProsutoKantaForm from "./ProsutoKantaForm";
 import AddQuantityBatch from "./AddQuantityBatch";
 
-function SaveDailyReportStates({ idNaloga, onDelete }) {
+function SaveDailyReportStates({ idNaloga, onDelete, onSaved }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [values, setValues] = useState({});
@@ -56,6 +57,16 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
     setShowModal(true);
   }
 
+  async function refreshStates() {
+    if (!idNaloga) return;
+
+    const res = await getReportStatesById(idNaloga);
+    setItems(res.items);
+    const arr = await getDayBeforeStates(idNaloga);
+    setDayBeforeState(arr);
+    setPrevMap(Object.fromEntries(arr.map((x) => [x.idPiva, x])));
+  }
+
   async function handleSave() {
     setLoading(true);
     setStatusMessage("");
@@ -73,7 +84,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
           (x) =>
             Number.isFinite(x.beerId) &&
             (x.izmereno === null || Number.isFinite(x.izmereno)) &&
-            (x.stanjeUProgramu === null || Number.isFinite(x.stanjeUProgramu))
+            (x.stanjeUProgramu === null || Number.isFinite(x.stanjeUProgramu)),
         );
 
       console.log("[SAVE] postDailyReportStates payload:", dataToSend);
@@ -111,6 +122,8 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
       await saveDailyBeerShortage(idNaloga);
       console.log("[SAVE] saveDailyBeerShortage OK");
 
+      onSaved?.();
+
       setStatusType("SUCCESS");
       setStatusMessage("SAČUVANO USPEŠNO");
       setStatusPopupOpen(true);
@@ -120,7 +133,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
       console.error(
         "[SAVE] FAILED:",
         err?.response?.status,
-        err?.response?.data || err
+        err?.response?.data || err,
       );
 
       setStatusType("error");
@@ -133,7 +146,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
 
   async function handleDelete() {
     const ok = window.confirm(
-      "Da li ste sigurni da želite da obrišete ovaj nalog?"
+      "Da li ste sigurni da želite da obrišete ovaj nalog?",
     );
     if (!ok) return;
 
@@ -162,7 +175,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
 
       const result = await updateDailyReportStatusAndCalculate(
         idNaloga,
-        payload
+        payload,
       );
 
       const proKanta = Number(prosutoKanta);
@@ -170,7 +183,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
         "prosutoKanta raw:",
         prosutoKanta,
         "num:",
-        Number(prosutoKanta)
+        Number(prosutoKanta),
       );
 
       const raw = (prosutoKanta ?? "").toString().trim();
@@ -185,7 +198,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
 
         const resultAfterKanta = await updateProsutoKantaAndRecalculate(
           idNaloga,
-          proKanta
+          proKanta,
         );
         setItems(resultAfterKanta.items);
       } else {
@@ -194,6 +207,8 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
 
       setMsg("Izmenjeno i preračunato");
       setShowModal(false);
+      await saveDailyBeerShortage(idNaloga);
+      await getBeerShortageTotalsForNalog(idNaloga);
     } catch (e) {
       console.error(e);
       setMsg("Greška pri izmeni");
@@ -363,7 +378,11 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
                     <AddQuantityRow idNaloga={idNaloga} articles={articles} />
                   </div> */}
                   <div className="relative z-10  rounded-xl bg-black p-6 shadow-xl ">
-                    <AddQuantityBatch idNaloga={idNaloga} articles={articles} />
+                    <AddQuantityBatch
+                      idNaloga={idNaloga}
+                      articles={articles}
+                      onUpdated={refreshStates}
+                    />
                   </div>
                 </div>
               )}
@@ -431,6 +450,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
                         onChange={(e) =>
                           handleChange(b.id, "izmereno", e.target.value)
                         }
+                        onWheel={(e) => e.currentTarget.blur()}
                         className={`rounded bg-white/10 px-3 py-2 text-white
           ${
             isKesa ? "placeholder:text-blue-400" : "placeholder:text-gray-400"
@@ -444,6 +464,7 @@ function SaveDailyReportStates({ idNaloga, onDelete }) {
                         onChange={(e) =>
                           handleChange(b.id, "stanjeUProgramu", e.target.value)
                         }
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="rounded bg-white/10 px-3 py-2 text-white"
                       />
                     </div>

@@ -683,7 +683,18 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
 
         }
 
-  
+        public async Task<List<InventoryResetDatesDto>> GetAllInventoryResetDatesAsync()
+        {
+            return await _context.InventoryResets
+                .AsNoTracking()
+                .Select(x => new InventoryResetDatesDto
+                {
+                    DatumPopisa = x.DatumPopisa
+                })
+                .ToListAsync();
+        }
+
+
 
     }
 }

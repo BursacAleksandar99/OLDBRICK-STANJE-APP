@@ -26,5 +26,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.DailyReports
         Task<object> CreateInventoryDate([FromBody] CreateInventoryResetDto dto);
         Task<List<KesaItemDto>> GetKesaitemsForDateAsync(DateOnly datum);
 
+        Task<List<InventoryResetDatesDto>> GetAllInventoryResetDatesAsync();
+
     }
 }

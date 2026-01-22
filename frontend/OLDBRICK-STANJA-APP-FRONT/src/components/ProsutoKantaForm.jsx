@@ -11,6 +11,7 @@ function ProsutoKantaForm({ value, onChange }) {
         step="0.05"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onWheel={(e) => e.currentTarget.blur()}
         className="w-full rounded-lg border px-3 py-2"
       />
     </div>

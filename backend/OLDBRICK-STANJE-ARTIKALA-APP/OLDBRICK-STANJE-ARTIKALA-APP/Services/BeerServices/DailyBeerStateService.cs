@@ -447,13 +447,14 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 if (dto.StanjeUProgramu.HasValue) s.StanjeUProgramu = dto.StanjeUProgramu.Value;
             }
 
-            await _context.SaveChangesAsync();
+            
 
             await _dailyReportService.RecalculateProsutoJednogPivaAsync(idNaloga);
 
             var result = await _prosutoService.CalculateAndSaveAsync(idNaloga);
 
             await tx.CommitAsync();
+            await _context.SaveChangesAsync();
             return result;
         }
 

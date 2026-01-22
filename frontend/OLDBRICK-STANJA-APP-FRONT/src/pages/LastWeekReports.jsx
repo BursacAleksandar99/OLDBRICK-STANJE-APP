@@ -13,7 +13,7 @@ function LastWeekReports() {
   const today = new Date();
 
   const firstDayOfMonth = `${today.getFullYear()}-${String(
-    today.getMonth() + 1
+    today.getMonth() + 1,
   ).padStart(2, "0")}-01`;
 
   const [from, setFrom] = useState(firstDayOfMonth);
@@ -123,7 +123,7 @@ function LastWeekReports() {
                 <div className="text-white/70 text-xs">OTPIS</div>
                 <div
                   className={`text-lg font-semibold ${getValueColor(
-                    result.totalMEasuredProsuto
+                    result.totalMEasuredProsuto,
                   )}`}
                 >
                   {result.totalMEasuredProsuto}L
@@ -134,7 +134,7 @@ function LastWeekReports() {
                 <div className="text-white/70 text-xs">MANJAK</div>
                 <div
                   className={`text-lg font-semibold ${getValueColor(
-                    result.totalAppProsuto
+                    result.totalAppProsuto,
                   )}`}
                 >
                   {result.totalAppProsuto}L
@@ -150,7 +150,7 @@ function LastWeekReports() {
             </div>
           </div>
         )}
-        {perBeer.length > 0 && (
+        {/* {perBeer.length > 0 && (
           <div className="mt-6 max-w-xl">
             <h2 className="text-white font-semibold mb-3">Prosuto po pivu</h2>
 
@@ -170,7 +170,7 @@ function LastWeekReports() {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

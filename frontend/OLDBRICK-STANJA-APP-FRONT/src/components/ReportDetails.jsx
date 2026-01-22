@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
   if (!items || items.length === 0) return null;
 
@@ -7,7 +9,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
   console.log("sinceLastInventory PROP:", sinceLastInventory);
 
   const shortageByBeerId = new Map(
-    (shortagePerBeer ?? []).map((s) => [s.idPiva, s.totalManjak])
+    (shortagePerBeer ?? []).map((s) => [s.idPiva, s.totalManjak]),
   );
 
   const shortageClass = (val) => {
@@ -16,11 +18,47 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
     return "text-green-400";
   };
 
+  const articleOrder = [
+    "Stara cigla svetla",
+    "Stara cigla IPA",
+    "Nektar",
+    "Haineken",
+    "Paulaner svetli",
+    "Paulaner psenica",
+    "Kozel tamno",
+    "Blank",
+    "Tuborg",
+    "Kafa",
+  ];
+
+  const orderMap = useMemo(() => {
+    const m = new Map();
+    articleOrder.forEach((name, idx) => m.set(name.toLowerCase().trim(), idx));
+    return m;
+  }, []);
+
+  const sortedItems = useMemo(() => {
+    const getIndex = (naziv) => {
+      const key = (naziv ?? "").toLowerCase().trim();
+      return orderMap.has(key) ? orderMap.get(key) : 9999; // nepoznati idu na kraj
+    };
+
+    return [...items].sort((a, b) => {
+      const ai = getIndex(a.nazivPiva);
+      const bi = getIndex(b.nazivPiva);
+
+      if (ai !== bi) return ai - bi;
+
+      // fallback: ako nisu u listi ili su isti index, sortiraj po nazivu
+      return (a.nazivPiva ?? "").localeCompare(b.nazivPiva ?? "");
+    });
+  }, [items, orderMap]);
+
   return (
     <div className="mt-6">
       {/* ===== MOBILE (kartice) ===== */}
       <div className="md:hidden space-y-3">
-        {items.map((x) => {
+        {sortedItems.map((x) => {
           const isKesa = x.tipMerenja === "kesa";
           const shortageVal = Number(shortageByBeerId.get(x.idPiva) ?? 0);
 
@@ -49,8 +87,8 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
                       x.odstupanje === 0
                         ? "text-yellow-400"
                         : x.odstupanje < 0
-                        ? "text-red-400"
-                        : "text-green-400"
+                          ? "text-red-400"
+                          : "text-green-400"
                     }`}
                   >
                     Odst: {Number(x.odstupanje).toFixed(2)}
@@ -58,7 +96,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
 
                   <div
                     className={`text-xs font-semibold ${shortageClass(
-                      shortageVal
+                      shortageVal,
                     )}`}
                   >
                     Od popisa: {shortageVal.toFixed(2)}
@@ -167,7 +205,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
                 <div className="text-xs text-gray-400 mb-1">Ukupno VAGA</div>
                 <div className="text-lg font-semibold text-blue-300">
                   {Number(
-                    sinceLastInventory?.totalVagaFromInventoryPotrosnja ?? 0
+                    sinceLastInventory?.totalVagaFromInventoryPotrosnja ?? 0,
                   ).toFixed(2)}
                 </div>
               </div>
@@ -176,7 +214,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
                 <div className="text-xs text-gray-400 mb-1">Ukupno POS</div>
                 <div className="text-lg font-semibold  text-green-300">
                   {Number(
-                    sinceLastInventory?.totalPosFromInventoryPotrosnja ?? 0
+                    sinceLastInventory?.totalPosFromInventoryPotrosnja ?? 0,
                   ).toFixed(2)}
                 </div>
               </div>
@@ -203,7 +241,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
           </thead>
 
           <tbody>
-            {items.map((x) => {
+            {sortedItems.map((x) => {
               const shortageVal = Number(shortageByBeerId.get(x.idPiva) ?? 0);
 
               return (
@@ -266,8 +304,8 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
                       x.odstupanje === 0
                         ? "text-yellow-400"
                         : x.odstupanje < 0
-                        ? "text-red-400"
-                        : "text-green-400"
+                          ? "text-red-400"
+                          : "text-green-400"
                     }`}
                   >
                     {Number(x.odstupanje).toFixed(2)}
@@ -275,7 +313,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
 
                   <td
                     className={`px-3 py-2 text-right font-semibold ${shortageClass(
-                      shortageVal
+                      shortageVal,
                     )}`}
                   >
                     {shortageVal.toFixed(2)}
@@ -337,7 +375,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
                 </div>
                 <div className="text-2xl font-semibold text-blue-300">
                   {Number(
-                    sinceLastInventory?.totalVagaFromInventoryPotrosnja ?? 0
+                    sinceLastInventory?.totalVagaFromInventoryPotrosnja ?? 0,
                   ).toFixed(2)}
                 </div>
               </div>
@@ -349,7 +387,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
                 </div>
                 <div className="text-2xl font-semibold text-green-300">
                   {Number(
-                    sinceLastInventory?.totalPosFromInventoryPotrosnja ?? 0
+                    sinceLastInventory?.totalPosFromInventoryPotrosnja ?? 0,
                   ).toFixed(2)}
                 </div>
               </div>

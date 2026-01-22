@@ -288,6 +288,13 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Controllers
             }
         }
 
+        [HttpGet("report-dates")]
+        public async Task<IActionResult> GetAllInventoryResetDates()
+        {
+            var dates = await _dailyReport.GetAllInventoryResetDatesAsync();
+            return Ok(dates);
+        }
+
     }
 
     

@@ -24,6 +24,7 @@ function DailyReports() {
   const [kesaItems, setKesaItems] = useState([]);
   const [kesaPos, setKesaPos] = useState({});
   const [kesaLoading, setKesaLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   async function handleGetOrCreateNalog(datum) {
     try {
@@ -76,7 +77,7 @@ function DailyReports() {
     const d =
       typeof datum === "string"
         ? datum
-        : datum?.toISOString?.().slice(0, 10) ?? "";
+        : (datum?.toISOString?.().slice(0, 10) ?? "");
 
     setInvDate(d);
     setInvNote("");
@@ -185,10 +186,15 @@ function DailyReports() {
         <SaveDailyReportStates
           idNaloga={idNaloga}
           onDelete={handleDeleteNalog}
+          onSaved={() => setRefreshKey((k) => k + 1)}
         />
       </div>
 
-      <DailyReportPreview datum={datum} onidNalogaResolved={setIdNaloga} />
+      <DailyReportPreview
+        datum={datum}
+        onidNalogaResolved={setIdNaloga}
+        refreshKey={refreshKey}
+      />
 
       {/*ONCLICK SE POJAVI */}
 

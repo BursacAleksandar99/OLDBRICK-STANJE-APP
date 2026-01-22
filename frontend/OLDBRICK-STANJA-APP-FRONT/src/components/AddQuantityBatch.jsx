@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { addMoreBeerQuantity } from "../api/helpers";
 
 function AddQuantityBatch({ idNaloga, articles = [], onUpdated }) {
@@ -10,7 +10,7 @@ function AddQuantityBatch({ idNaloga, articles = [], onUpdated }) {
         console.error("Ovo pivo nema idPiva!", a);
       }
       return { idPiva: a.id, kolicina: "", nazivPiva: a.nazivPiva };
-    })
+    }),
   );
 
   console.log(beerItems);
@@ -74,9 +74,34 @@ function AddQuantityBatch({ idNaloga, articles = [], onUpdated }) {
     }
   }
 
+  const articleOrder = [
+    "Stara cigla svetla",
+    "Stara cigla IPA",
+    "Nektar",
+    "Haineken",
+    "Paulaner svetli",
+    "Paulaner psenica",
+    "Kozel tamno",
+    "Blank",
+    "Tuborg",
+    "Kafa",
+  ];
+  const displayBeerItems = React.useMemo(() => {
+    return [...beerItems].sort((a, b) => {
+      const ia = articleOrder.indexOf(a.nazivPiva);
+      const ib = articleOrder.indexOf(b.nazivPiva);
+
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+
+      return ia - ib;
+    });
+  }, [beerItems]);
+
   return (
     <div className="flex flex-col gap-2">
-      {beerItems.map(function (item) {
+      {displayBeerItems.map(function (item) {
         return (
           <div
             key={item.idPiva}
@@ -84,10 +109,15 @@ function AddQuantityBatch({ idNaloga, articles = [], onUpdated }) {
           >
             <span className="flex-1">{item.nazivPiva}</span>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={item.kolicina}
-              onChange={function (e) {
-                handleKolicinaChange(item.idPiva, e.target.value);
+              onChange={(e) => {
+                const val = e.target.value;
+
+                if (/^\d*\.?\d*$/.test(val)) {
+                  handleKolicinaChange(item.idPiva, val);
+                }
               }}
               className="w-20 border px-2 py-1 rounded text-right"
             />

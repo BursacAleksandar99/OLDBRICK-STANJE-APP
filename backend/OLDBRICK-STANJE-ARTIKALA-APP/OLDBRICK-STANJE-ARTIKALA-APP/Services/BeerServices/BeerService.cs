@@ -47,19 +47,12 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             return await _context.Beers.OrderBy(b => b.NazivPiva).ToListAsync();
         }
 
-        public async Task SaveDailyBeerShortageAsync(int idNaloga)
+        public async Task SaveDailyBeerShortageAsync(int idNaloga) //metoda moze i upisati i update raditi
         {
             if (idNaloga <= 0)
                 throw new ArgumentException("IdNaloga nije validan.");
 
-            // 1) Ne dozvoljavamo dupli upis za isti nalog
-            var alreadyExists = await _context.DailyBeerShortages
-                .AnyAsync(x => x.IdNaloga == idNaloga);
-
-            if (alreadyExists)
-                throw new InvalidOperationException("Manjak po pivu je vec upisan za ovaj nalog.");
-
-            // 2) Ucitaj nalog zbog datuma (isti izvor kao u GetAllStatesByIdNaloga)
+            // 1) Ucitaj nalog zbog datuma
             var report = await _context.DailyReports
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.IdNaloga == idNaloga);
@@ -67,13 +60,12 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             if (report == null)
                 throw new ArgumentException("Dnevni nalog ne postoji.");
 
-            // Ako je Datum DateOnly u DailyReports:
             var datum = DateTime.SpecifyKind(
-                        new DateTime(report.Datum.Year, report.Datum.Month, report.Datum.Day),
-                        DateTimeKind.Utc
-                    );
+                new DateTime(report.Datum.Year, report.Datum.Month, report.Datum.Day, 0, 0, 0),
+                DateTimeKind.Utc
+            );
 
-            // 3) Uzmi DTO koji vec racuna "odstupanje" po pivu
+            // 2) Uzmi DTO koji vec racuna odstupanje po pivu
             var dto = await _prosutoService.GetAllStatesByIdNaloga(idNaloga);
 
             if (dto?.Items == null || dto.Items.Count == 0)
@@ -82,12 +74,21 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
+                // 3) Obrisi stare redove za ovaj nalog (ako postoje)
+                var existing = await _context.DailyBeerShortages
+                    .Where(x => x.IdNaloga == idNaloga)
+                    .ToListAsync();
+
+                if (existing.Count > 0)
+                    _context.DailyBeerShortages.RemoveRange(existing);
+
+                // 4) Ubaci nove izracunate redove
                 var rows = dto.Items.Select(i => new DailyBeerShortage
                 {
                     IdNaloga = idNaloga,
                     Datum = datum,
                     IdPiva = i.IdPiva,
-                    Manjak = (float)Math.Round(i.Odstupanje, 2, MidpointRounding.AwayFromZero),// <-- OVO JE  "MANJAK"
+                    Manjak = (float)Math.Round(i.Odstupanje, 2, MidpointRounding.AwayFromZero),
                     CreatedAt = DateTime.UtcNow
                 }).ToList();
 

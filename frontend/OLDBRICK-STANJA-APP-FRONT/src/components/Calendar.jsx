@@ -1,5 +1,6 @@
-import { getAllReportDates } from "../api/helpers";
+import { getAllReportDates, getInventoryResetDates } from "../api/helpers";
 import { useMemo, useState, useEffect } from "react";
+import { ClipboardCheck } from "lucide-react";
 
 function pad2(n) {
   return String(n).padStart(2, "0");
@@ -35,6 +36,7 @@ function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
 
   const [viewDate, setViewDate] = useState(() => selected ?? new Date());
   const [markedMap, setMarkedMap] = useState(new Map());
+  const [inventoryResetSet, setInventoryResetSet] = useState(new Set());
 
   useEffect(() => {
     console.log("CALENDAR PATCH:", calendarPatch);
@@ -55,6 +57,26 @@ function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
         if (!cancelled) setMarkedMap(map);
       } catch (e) {
         console.error("Failed to load report dates:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await getInventoryResetDates();
+
+        const set = new Set(res.map((x) => x.datumPopisa.slice(0, 10)));
+
+        if (!cancelled) setInventoryResetSet(set);
+      } catch (e) {
+        console.error("Failed to load inventory reset dates:", e);
       }
     })();
 
@@ -146,7 +168,7 @@ function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
   const selectedISO = selected ? toISODate(selected) : null;
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-lg mx-auto">
       <div className="mb-2 text-sm text-white/70">{label}</div>
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4">
@@ -201,6 +223,7 @@ function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
             const isSelected = iso && selectedISO === iso;
             const isToday = d && toISODate(d) === toISODate(new Date());
             const isMarked = iso && markedMap.has(iso);
+            const isInventoryReset = iso && inventoryResetSet.has(iso);
 
             return (
               <button
@@ -209,15 +232,18 @@ function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
                 disabled={isEmpty}
                 onClick={() => iso && onChange(iso)}
                 className={[
-                  "relative aspect-square rounded-lg text-sm sm:text-base transition",
+                  "relative aspect-square rounded-xl text-base sm:text-lg transition",
                   isEmpty
                     ? "opacity-0 cursor-default"
-                    : "hover:bg-white/10 text-white/90",
+                    : "hover:bg-white/15 text-white/90",
                   isSelected
                     ? "bg-[#FACC15] text-black font-semibold hover:bg-[#FACC15]"
                     : "",
                   !isSelected && isToday ? "ring-1 ring-[#FACC15]/50" : "",
-                  isMarked && !isSelected
+                  isInventoryReset && !isSelected
+                    ? "bg-blue-500/70 ring-1 ring-blue-400/50"
+                    : "",
+                  isMarked && !isSelected && !isInventoryReset
                     ? "bg-green-500/70 ring-1 ring-emerald-400/40"
                     : "",
                 ].join(" ")}
@@ -230,6 +256,12 @@ function Calendar({ value, onChange, label = "Datum", calendarPatch }) {
                   <span className="absolute bottom-1 right-1 text-[10px] leading-none text-emerald-300">
                     ✔
                   </span>
+                )}
+                {isInventoryReset && !isSelected && (
+                  <ClipboardCheck
+                    size={12}
+                    className="absolute top-1 right-1 text-blue-200"
+                  />
                 )}
               </button>
             );
