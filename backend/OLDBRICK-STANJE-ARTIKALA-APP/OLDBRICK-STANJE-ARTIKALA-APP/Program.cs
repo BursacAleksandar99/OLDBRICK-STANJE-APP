@@ -40,7 +40,7 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
             var allowedOrigins = new[]
             {
                 "https://oldbrick-stanje-app.vercel.app",
-                "http://localhost:5173",
+                "http://localhost:5174",
                 "http://localhost:3000"
             };
 

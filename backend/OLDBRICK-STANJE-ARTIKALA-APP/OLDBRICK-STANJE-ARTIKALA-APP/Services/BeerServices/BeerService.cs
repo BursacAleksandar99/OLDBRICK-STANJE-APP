@@ -47,12 +47,11 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             return await _context.Beers.OrderBy(b => b.NazivPiva).ToListAsync();
         }
 
-        public async Task SaveDailyBeerShortageAsync(int idNaloga) //metoda moze i upisati i update raditi
+        public async Task SaveDailyBeerShortageAsync(int idNaloga)
         {
             if (idNaloga <= 0)
                 throw new ArgumentException("IdNaloga nije validan.");
 
-            // 1) Ucitaj nalog zbog datuma
             var report = await _context.DailyReports
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.IdNaloga == idNaloga);
@@ -65,16 +64,20 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 DateTimeKind.Utc
             );
 
-            // 2) Uzmi DTO koji vec racuna odstupanje po pivu
             var dto = await _prosutoService.GetAllStatesByIdNaloga(idNaloga);
 
             if (dto?.Items == null || dto.Items.Count == 0)
                 throw new ArgumentException("Nema stavki za upis manjka.");
 
-            using var tx = await _context.Database.BeginTransactionAsync();
+            // ✅ Ako već postoji transakcija (npr. update flow), ne otvaraj novu
+            var hasOuterTx = _context.Database.CurrentTransaction != null;
+
+            await using var tx = hasOuterTx
+                ? null
+                : await _context.Database.BeginTransactionAsync();
+
             try
             {
-                // 3) Obrisi stare redove za ovaj nalog (ako postoje)
                 var existing = await _context.DailyBeerShortages
                     .Where(x => x.IdNaloga == idNaloga)
                     .ToListAsync();
@@ -82,7 +85,6 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 if (existing.Count > 0)
                     _context.DailyBeerShortages.RemoveRange(existing);
 
-                // 4) Ubaci nove izracunate redove
                 var rows = dto.Items.Select(i => new DailyBeerShortage
                 {
                     IdNaloga = idNaloga,
@@ -95,14 +97,17 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 await _context.DailyBeerShortages.AddRangeAsync(rows);
                 await _context.SaveChangesAsync();
 
-                await tx.CommitAsync();
+                if (!hasOuterTx)
+                    await tx!.CommitAsync();
             }
             catch
             {
-                await tx.RollbackAsync();
+                if (!hasOuterTx && tx != null)
+                    await tx.RollbackAsync();
                 throw;
             }
         }
+
 
         public async Task<List<BeerShortageSumDto>> GetBeerShortageTotalsSinceLastInventoryAsync(int idNaloga)
         {

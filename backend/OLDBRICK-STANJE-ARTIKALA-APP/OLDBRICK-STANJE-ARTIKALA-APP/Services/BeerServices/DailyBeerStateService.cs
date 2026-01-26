@@ -12,13 +12,15 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
         public readonly AppDbContext _context;
         public readonly IProsutoService _prosutoService;
         public readonly IDailyReportService _dailyReportService;
+        public readonly IBeerService _beerService;
 
         public DailyBeerStateService(AppDbContext context, IProsutoService prosutoService,
-            IDailyReportService dailyReportService)
+            IDailyReportService dailyReportService, IBeerService beerService)
         {
             _context = context;
             _prosutoService = prosutoService;
             _dailyReportService = dailyReportService;
+            _beerService = beerService;
         }
 
         public async Task<List<DailyBeerState>>UpsertForReportAsync(int idNaloga, List<UpsertDailyBeerStateDto> items)
@@ -447,15 +449,47 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
                 if (dto.StanjeUProgramu.HasValue) s.StanjeUProgramu = dto.StanjeUProgramu.Value;
             }
 
-            
+            await _context.SaveChangesAsync();
 
             await _dailyReportService.RecalculateProsutoJednogPivaAsync(idNaloga);
 
             var result = await _prosutoService.CalculateAndSaveAsync(idNaloga);
 
+            //METODA KOJA RACUNA SVE SLEDECE NALOGE AKO SE DESI PROMENA ZA NEKI STARIJI NALOG!
+            await RecalculateChainFromAsync(idNaloga);
+
             await tx.CommitAsync();
-            await _context.SaveChangesAsync();
+           
             return result;
+        }
+
+        public async Task RecalculateChainFromAsync(int idNaloga)
+        {
+            var report = await _context.DailyReports
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.IdNaloga == idNaloga);
+            if(report == null)
+            {
+                throw new ArgumentException("Dnevni nalog ne postoji.");
+            }
+
+            var baseDate = report.Datum;
+
+            var nextIds = await _context.DailyReports
+                .AsNoTracking()
+                .Where(r => r.Datum > baseDate)
+                .OrderBy(r => r.Datum)
+                .Select(r => r.IdNaloga)
+                .ToListAsync();
+
+            foreach(var nextId in nextIds)
+            {
+                
+                await _prosutoService.CalculateAndSaveAsync(nextId);
+                await _beerService.SaveDailyBeerShortageAsync(nextId);
+                await _dailyReportService.RecalculateProsutoJednogPivaAsync(nextId);
+            }
+
         }
 
 
