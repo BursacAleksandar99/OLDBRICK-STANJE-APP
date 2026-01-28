@@ -4,7 +4,7 @@
     {
 
         public int BeerId { get; set; }                 
-        public float Izmereno { get; set; }           
-        public float StanjeUProgramu { get; set; }
+        public float? Izmereno { get; set; }           
+        public float? StanjeUProgramu { get; set; }
     }
 }

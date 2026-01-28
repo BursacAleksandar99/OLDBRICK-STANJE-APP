@@ -28,6 +28,7 @@ function ReportDetails({ items, totals, sinceLastInventory, shortagePerBeer }) {
     "Kozel tamno",
     "Blank",
     "Tuborg",
+    "Lav",
     "Kafa",
   ];
 

@@ -40,17 +40,31 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP
             var allowedOrigins = new[]
             {
                 "https://oldbrick-stanje-app.vercel.app",
-                "http://localhost:5174",
-                "http://localhost:3000"
+                
             };
 
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(corsPolicyName, policy =>
-                    policy.WithOrigins(allowedOrigins)
-                          .AllowAnyHeader()
-                          .AllowAnyMethod()
-                // .AllowCredentials() // koristi samo ako saljes cookies; za JWT u headeru ne treba
+                    policy
+                        .SetIsOriginAllowed(origin =>
+                        {
+                            if (string.IsNullOrEmpty(origin))
+                                return false;
+
+                            //  produkcija (Vercel)
+                            if (allowedOrigins.Contains(origin))
+                                return true;
+
+                            //  bilo koji localhost port (DEV)
+                            if (origin.StartsWith("http://localhost"))
+                                return true;
+
+                            return false;
+                        })
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                // .AllowCredentials()
                 );
             });
 

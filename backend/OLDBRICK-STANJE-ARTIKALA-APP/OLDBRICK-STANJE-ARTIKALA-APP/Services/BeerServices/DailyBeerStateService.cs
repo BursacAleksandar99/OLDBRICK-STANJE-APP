@@ -23,58 +23,92 @@ namespace OLDBRICK_STANJE_ARTIKALA_APP.Services.BeerServices
             _beerService = beerService;
         }
 
-        public async Task<List<DailyBeerState>>UpsertForReportAsync(int idNaloga, List<UpsertDailyBeerStateDto> items)
+        public async Task<List<DailyBeerState>> UpsertForReportAsync(
+    int idNaloga,
+    List<UpsertDailyBeerStateDto> items)
         {
-            if(items == null || items.Count == 0) 
-                throw new ArgumentException("Lista svaki je prazna.");
+            items ??= new List<UpsertDailyBeerStateDto>();
 
-            var reportExists = await _context.DailyReports.AnyAsync(x => x.IdNaloga == idNaloga);
-            if(!reportExists)
+            var report = await _context.DailyReports
+                .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga);
+
+            if (report == null)
                 throw new ArgumentException("Dnevni nalog ne postoji.");
 
-            var beerIds = items.Select(x => x.BeerId).Distinct().ToList();
+            // 1) SVA piva (TAB1)
+            var allBeers = await _context.Beers
+                .Select(b => new { b.Id, b.NazivPiva })
+                .ToListAsync();
 
-            var beers = await _context.Beers.Where(b => beerIds.Contains(b.Id))
-                .ToDictionaryAsync(b => b.Id, b => b.NazivPiva);
+            // 2) Prethodni nalog (po datumu)
+            var prevReport = await _context.DailyReports
+                .Where(r => r.Datum < report.Datum)
+                .OrderByDescending(r => r.Datum)
+                .FirstOrDefaultAsync();
+
+            // 3) Prev states map (IdPiva -> state)
+            Dictionary<int, DailyBeerState> prevMap = new();
+            if (prevReport != null)
+            {
+                prevMap = await _context.DailyBeerStates
+                    .Where(s => s.IdNaloga == prevReport.IdNaloga)
+                    .ToDictionaryAsync(s => s.IdPiva);
+            }
+
+            // 4) Current states map (IdPiva -> state) za ovaj nalog (sva piva)
+            var currentMap = await _context.DailyBeerStates
+                .Where(s => s.IdNaloga == idNaloga)
+                .ToDictionaryAsync(s => s.IdPiva);
+
+            // 5) Incoming map (BeerId -> dto)
+            var incomingMap = items
+                .GroupBy(x => x.BeerId)
+                .ToDictionary(g => g.Key, g => g.Last()); // ako duplikati, uzmi poslednji
 
             var result = new List<DailyBeerState>();
 
-            foreach( var dto in items)
+            foreach (var beer in allBeers)
             {
-                if (dto.BeerId <= 0) throw new ArgumentException("BeerId nije validan.");
-                if (dto.Izmereno < 0) throw new ArgumentException("Izmereno ne može biti negativno.");
-                if (dto.StanjeUProgramu < 0) throw new ArgumentException("Stanje u programu ne može biti negativno.");
-                if (!beers.TryGetValue(dto.BeerId, out var beerName))
-                    throw new ArgumentException($"Pivo sa ID {dto.BeerId} ne postoji.");
+                incomingMap.TryGetValue(beer.Id, out var dto);
+                prevMap.TryGetValue(beer.Id, out var prev);
 
+                // Validacija samo ako je dto poslat
+                if (dto != null)
+                {
+                    if (dto.BeerId <= 0) throw new ArgumentException("BeerId nije validan.");
+                    if (dto.Izmereno.HasValue && dto.Izmereno.Value < 0)
+                        throw new ArgumentException("Izmereno ne može biti negativno.");
+                    if (dto.StanjeUProgramu.HasValue && dto.StanjeUProgramu.Value < 0)
+                        throw new ArgumentException("Stanje u programu ne može biti negativno.");
+                }
 
-                var existing = await _context.DailyBeerStates
-                    .FirstOrDefaultAsync(x => x.IdNaloga == idNaloga && x.IdPiva == dto.BeerId);
+                var finalIzmereno = dto?.Izmereno ?? prev?.Izmereno ?? 0f;
+                var finalProgram = dto?.StanjeUProgramu ?? prev?.StanjeUProgramu ?? 0f;
 
-                if(existing == null)
+                if (!currentMap.TryGetValue(beer.Id, out var existing))
                 {
                     var state = new DailyBeerState
                     {
                         IdNaloga = idNaloga,
-                        IdPiva = dto.BeerId,
-                        NazivPiva = beerName,
-                        Izmereno = dto.Izmereno,
-                        StanjeUProgramu = dto.StanjeUProgramu
+                        IdPiva = beer.Id,
+                        NazivPiva = beer.NazivPiva,
+                        Izmereno = finalIzmereno,
+                        StanjeUProgramu = finalProgram
                     };
 
                     _context.DailyBeerStates.Add(state);
+                    currentMap[beer.Id] = state;
                     result.Add(state);
                 }
                 else
                 {
-                    existing.NazivPiva = beerName;
-                    existing.Izmereno = dto.Izmereno;
-                    existing.StanjeUProgramu = dto.StanjeUProgramu;
+                    existing.NazivPiva = beer.NazivPiva;
+                    existing.Izmereno = finalIzmereno;
+                    existing.StanjeUProgramu = finalProgram;
                     result.Add(existing);
                 }
-
-               
             }
+
             await _context.SaveChangesAsync();
             return result;
         }

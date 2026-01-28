@@ -209,12 +209,15 @@ function SaveDailyReportStates({ idNaloga, onDelete, onSaved }) {
       await getBeerShortageTotalsForNalog(idNaloga);
 
       onSaved?.();
-
+      setStatusType("SUCCESS");
+      setStatusPopupOpen(true);
       setMsg("Izmenjeno i preračunato");
       setShowModal(false);
     } catch (e) {
       console.error(e);
       setMsg("Greška pri izmeni");
+      setStatusType("error");
+      setStatusPopupOpen(true);
     } finally {
       setLoading(false);
     }
@@ -278,6 +281,7 @@ function SaveDailyReportStates({ idNaloga, onDelete, onSaved }) {
     "Kozel tamno",
     "Blank",
     "Tuborg",
+    "Lav",
     "Kafa",
   ];
 
@@ -534,7 +538,15 @@ function SaveDailyReportStates({ idNaloga, onDelete, onSaved }) {
               {statusType === "SUCCESS" ? "Uspeh ✅" : "Greška ❌"}
             </div>
 
-            <div className="mt-2 text-white/80 text-sm">{statusMessage}</div>
+            <div className="mt-2 text-white/80 text-sm">
+              {mode === "edit"
+                ? statusType === "SUCCESS"
+                  ? "Izmene su uspešno sačuvane i preračunate."
+                  : "Greška pri izmeni dnevnog stanja."
+                : statusType === "SUCCESS"
+                  ? "Dnevno stanje je uspešno sačuvano."
+                  : "Greška pri čuvanju dnevnog stanja."}
+            </div>
 
             <div className="mt-4 flex justify-end gap-2">
               <button
