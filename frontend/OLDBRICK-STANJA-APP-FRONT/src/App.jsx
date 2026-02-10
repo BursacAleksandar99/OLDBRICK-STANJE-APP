@@ -11,6 +11,7 @@ import DayBeforeReports from "./pages/DayBeforeReports.jsx";
 import LastWeekReports from "./pages/LastWeekReports.jsx";
 import ReportDetails from "./components/ReportDetails.jsx";
 import AllReports from "./pages/AllReports.jsx";
+import CleaningSnapshotsForm from "./components/ClearingSnapshots.jsx";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/weekly-reports" element={<LastWeekReports />} />
         <Route path="/report-details" element={<ReportDetails />} />
         <Route path="/all-reports" element={<AllReports />} />
+        <Route path="/clearing-snapshots" element={<CleaningSnapshotsForm />} />
       </Routes>
     </div>
   );

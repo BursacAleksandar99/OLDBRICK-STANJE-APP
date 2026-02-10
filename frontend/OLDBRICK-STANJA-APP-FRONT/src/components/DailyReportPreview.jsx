@@ -8,7 +8,12 @@ import {
 } from "../api/helpers";
 import ReportDetails from "./ReportDetails";
 
-function DailyReportPreview({ datum, refreshKey, onidNalogaResolved }) {
+function DailyReportPreview({
+  datum,
+  refreshKey,
+  onidNalogaResolved,
+  onCalculatedChange,
+}) {
   const [data, setData] = useState(null);
   const [idNaloga, setIdNaloga] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -16,6 +21,9 @@ function DailyReportPreview({ datum, refreshKey, onidNalogaResolved }) {
   const [sinceLastInventory, setSinceLastInventory] = useState(null);
   const [loading, setLoading] = useState(false);
   const [shortagePerBeer, setShortagePerBeer] = useState([]);
+
+  const calculated = data?.totalProsuto != null;
+  onCalculatedChange?.(!!calculated);
 
   useEffect(() => {
     if (!datum) return;

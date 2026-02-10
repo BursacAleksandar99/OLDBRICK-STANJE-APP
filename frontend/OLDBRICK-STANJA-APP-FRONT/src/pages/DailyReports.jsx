@@ -7,8 +7,10 @@ import {
   createInventoryReset,
   deleteDailyReport,
   getKesaItemsForDate,
+  getAllArticles,
 } from "../api/helpers";
 import SaveDailyReportStates from "../components/SaveDailyReportStates";
+import CleaningSnapshotsModal from "../components/ClearingSnapshotsModal";
 
 function DailyReports() {
   const [datum, setDatum] = useState("");
@@ -26,11 +28,16 @@ function DailyReports() {
   const [kesaLoading, setKesaLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [pending, setPending] = useState(0);
+  const [isCleaningOpen, setIsCleaningOpen] = useState(false);
+  const [kesaBeers, setKesaBeers] = useState([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [isReportCalculated, setIsReportCalculated] = useState(false);
 
   const begin = () => setPending((p) => p + 1);
   const end = () => setPending((p) => Math.max(0, p - 1));
 
   const isGlobalLoading = pending > 0;
+  const cleaningDisabled = !idNaloga || isReportCalculated;
 
   useEffect(() => {
     console.log("refreshKey changed:", refreshKey);
@@ -160,12 +167,48 @@ function DailyReports() {
       .finally(() => setKesaLoading(false));
   }, [isInvOpen, invDate]);
 
+  useEffect(() => {
+    if (!isCleaningOpen) return;
+
+    setArticlesLoading(true);
+    getAllArticles()
+      .then((all) => {
+        const onlyKesa = (all || [])
+          .filter((x) => (x.tipMerenja || "").toLowerCase() === "kesa")
+          .map((x) => ({
+            idPiva: x.id,
+            naziv: x.nazivPiva,
+          }));
+
+        setKesaBeers(onlyKesa);
+      })
+      .catch((e) => {
+        console.error(e);
+        setKesaBeers([]);
+      })
+      .finally(() => setArticlesLoading(false));
+  }, [isCleaningOpen]);
+
   return (
     <div className="pt-20 px-4 relative">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-xl font-semibold text-white">
           KREIRAJ DNEVNI NALOG
         </h1>
+
+        <button
+          type="button"
+          onClick={() => setIsCleaningOpen(true)}
+          disabled={!idNaloga}
+          className="h-10 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+        >
+          Pranje
+        </button>
+        {/* {cleaningDisabled && idNaloga ? (
+          <div className="text-xs text-white/60">
+            Pranje može samo na otvorenom nalogu koji nije proračunat.
+          </div>
+        ) : null} */}
 
         <button
           type="button"
@@ -212,6 +255,7 @@ function DailyReports() {
           refreshKey={refreshKey}
           onBusyStart={begin}
           onBusyEnd={end}
+          onCalculatedChange={setIsReportCalculated}
         />
       </div>
 
@@ -346,6 +390,46 @@ function DailyReports() {
             >
               OK
             </button>
+          </div>
+        </div>
+      )}
+      {isCleaningOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsCleaningOpen(false)}
+          />
+
+          <div className="relative z-10 w-[92%] max-w-lg rounded-xl bg-[#1f2937] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-lg">
+                Pranje točilica
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCleaningOpen(false)}
+                className="text-gray-400 hover:text-white text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {articlesLoading ? (
+              <div className="text-white/60 text-sm">Učitavam piva…</div>
+            ) : (
+              <CleaningSnapshotsModal
+                open={isCleaningOpen}
+                onClose={() => setIsCleaningOpen(false)}
+                idNaloga={idNaloga}
+                datum={
+                  typeof datum === "string"
+                    ? datum
+                    : (datum?.toISOString?.().slice(0, 10) ?? "")
+                }
+                isReportCalculated={isReportCalculated}
+                onSaved={() => setRefreshKey((k) => k + 1)}
+              />
+            )}
           </div>
         </div>
       )}

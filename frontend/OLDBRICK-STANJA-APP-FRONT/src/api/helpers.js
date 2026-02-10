@@ -229,3 +229,20 @@ export async function getInventoryResetDates() {
   const { data } = await httpClient.get("/api/dailyreports/report-dates");
   return data;
 }
+
+export async function upsertCleaningSnapshotsBatch({ datum, idNaloga, items }) {
+  if (!datum) throw new Error("datum je obavezan.");
+  if (!idNaloga) throw new Error("idNaloga je obavezan.");
+  if (!items || items.length === 0) throw new Error("items je prazan.");
+
+  const { data } = await httpClient.post(
+    "/api/dailyreports/cleaning-snapshots-upsert-batch",
+    {
+      datum,
+      idNaloga,
+      items,
+    },
+  );
+
+  return data;
+}
