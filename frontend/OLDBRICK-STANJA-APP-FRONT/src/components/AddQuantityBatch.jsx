@@ -87,16 +87,18 @@ function AddQuantityBatch({ idNaloga, articles = [], onUpdated }) {
     "Kafa",
   ];
   const displayBeerItems = React.useMemo(() => {
-    return [...beerItems].sort((a, b) => {
-      const ia = articleOrder.indexOf(a.nazivPiva);
-      const ib = articleOrder.indexOf(b.nazivPiva);
+    return beerItems
+      .filter((item) => item.idPiva !== 2)
+      .sort((a, b) => {
+        const ia = articleOrder.indexOf(a.nazivPiva);
+        const ib = articleOrder.indexOf(b.nazivPiva);
 
-      if (ia === -1 && ib === -1) return 0;
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
+        if (ia === -1 && ib === -1) return 0;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
 
-      return ia - ib;
-    });
+        return ia - ib;
+      });
   }, [beerItems]);
 
   return (
